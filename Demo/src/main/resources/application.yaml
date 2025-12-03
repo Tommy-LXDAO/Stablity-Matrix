@@ -1,0 +1,46 @@
+# 服务器配置
+server:
+  port: 8888  # 应用服务监听端口，默认8080
+
+spring:
+  # Spring AI 配置
+  ai:
+    # 智谱AI大模型配置
+    zhipuai:
+      api-key: ${ZHIPU_KEY}  # 智谱API密钥（从环境变量ZHIPU_KEY获取）
+      chat:
+        options:
+          model: glm-4.6  # 使用的聊天模型名称（GLM-4.6）
+      embedding:
+        options:
+          model: embedding-3  # 使用的嵌入模型名称（embedding-3）
+          dimensions: 256  # 嵌入向量的维度（256维）
+    mcp:
+      client:
+        sse:
+          connections:
+            server1:
+              url: http://127.0.0.1:8080 # mcp服务url
+#            fetcher-mcp:
+#              url: http://127.0.0.1:3000
+#            web-search:
+#              url: http://127.0.0.1:3001
+    # 向量存储配置
+    vectorstore:
+      redis:
+        initialize-schema: true  # 启动时自动创建Redis向量索引结构（首次部署需开启）
+        prefix: stability_rag_prefix  # Redis键名前缀，用于区分不同应用的向量数据
+        index: stability_rag_index  # Redis向量索引名称
+  application:
+    name: lyw-redis-rag  # 应用名称
+  # 数据源配置
+  data:
+    redis:
+      host: 127.0.0.1  # Redis服务器地址
+      port: 6379  # Redis服务器连接端口（默认6379）
+  webflux:
+    client:
+      response-timeout: 300s
+  mvc:
+    async:
+      request-timeout: 300s
