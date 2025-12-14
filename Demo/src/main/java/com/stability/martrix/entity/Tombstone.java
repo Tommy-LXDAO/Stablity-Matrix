@@ -10,10 +10,6 @@ import java.util.List;
 // 故障现场信息
 @Data
 public class Tombstone extends TroubleEntity {
-    private String stackTopRawInformation;
-    private int sigNumber;
-    private String sigInformation;
-    private String troubleInformation;
     private CPUArchitecture cpuArchitecture;
     private StackDumpInfo stackDumpInfo; // 栈信息
     private SignalInfo signalInfo; // 信号信息
