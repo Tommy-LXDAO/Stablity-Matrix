@@ -1,12 +1,8 @@
 package com.stability.martrix.service;
 
-import org.springframework.stereotype.Service;
+import com.stability.martrix.entity.AArch64Tombstone;
+import com.stability.martrix.entity.TroubleEntity;
 
-/**
- * 任务：将文件信息转换为结构化的故障数据
- */
-
-@Service
-public class FileService {
-
+public interface FileService {
+    public TroubleEntity parseFile(String filePath);
 }

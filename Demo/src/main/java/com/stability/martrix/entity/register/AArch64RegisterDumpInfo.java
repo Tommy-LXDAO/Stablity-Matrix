@@ -1,5 +1,8 @@
 package com.stability.martrix.entity.register;
 
+import lombok.Data;
+
+@Data
 public class AArch64RegisterDumpInfo implements RegisterDumpInfo{
     private long x0;
     private long x1;
@@ -34,6 +37,4 @@ public class AArch64RegisterDumpInfo implements RegisterDumpInfo{
     private long x30;
     private long sp;
     private long pc;
-
-
 }
