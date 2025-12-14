@@ -1,7 +1,6 @@
 package com.stability.martrix.entity;
 
 import com.stability.martrix.entity.register.AArch64RegisterDumpInfo;
-import com.stability.martrix.entity.register.RegisterDumpInfo;
 import com.stability.martrix.enums.CPUArchitecture;
 import lombok.Data;
 
@@ -9,13 +8,13 @@ import java.util.List;
 
 // 故障现场信息
 @Data
-public class Tombstone extends TroubleEntity {
+public class AArch64Tombstone extends TroubleEntity {
     private CPUArchitecture cpuArchitecture;
     private StackDumpInfo stackDumpInfo; // 栈信息
     private SignalInfo signalInfo; // 信号信息
     private List<FdInfo> fdInfo; // fd 信息
     private List<MapsInfo> mapsInfoList; // maps 信息
-    private RegisterDumpInfo registerDumpInfo; // dump信息
+    private AArch64RegisterDumpInfo registerDumpInfo; // dump信息
 
     @Data
     static class StackDumpInfo{
