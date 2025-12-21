@@ -71,10 +71,59 @@ public class AArch64Tombstone extends TroubleEntity {
     public static class FdInfo {
         private int fd;
         private String path;
+        private FdsanInfo fdsanInfo;
 
-        public FdInfo(int fd, String path) {
+        public FdInfo(int fd, String path, FdsanInfo fdsanInfo) {
             this.fd = fd;
             this.path = path;
+            this.fdsanInfo = fdsanInfo;
+        }
+
+        @Data
+        public static class FdsanInfo{
+            private String ownedType;
+            private long owner;
+            
+            public FdsanInfo(String ownedType, long owner) {
+                this.ownedType = ownedType;
+                this.owner = owner;
+            }
+        }
+
+        public static FdsanInfo parseFdsanInfo(String fdsanInfo) {
+            if (fdsanInfo == null || fdsanInfo.isEmpty()) {
+                return null;
+            }
+            
+            // 解析格式如 "(owned by unique_fd 0x7c65904a74)" 或 "(unowned)"
+            fdsanInfo = fdsanInfo.trim();
+            if (fdsanInfo.equals("(unowned)")) {
+                return null; // 未拥有的文件描述符
+            }
+            
+            if (fdsanInfo.startsWith("(owned by ") && fdsanInfo.endsWith(")")) {
+                // 提取中间部分: "unique_fd 0x7c65904a74"
+                String content = fdsanInfo.substring(10, fdsanInfo.length() - 1);
+                String[] parts = content.split(" ");
+                if (parts.length == 2) {
+                    String ownedType = parts[0]; // 如 "unique_fd"
+                    long owner = 0;
+                    try {
+                        // 解析十六进制地址，如 "0x7c65904a74"
+                        String hexStr = parts[1];
+                        if (hexStr.startsWith("0x")) {
+                            owner = Long.parseLong(hexStr.substring(2), 16);
+                        } else {
+                            owner = Long.parseLong(hexStr, 16);
+                        }
+                    } catch (NumberFormatException e) {
+                        // 如果解析失败，使用默认值0
+                    }
+                    return new FdsanInfo(ownedType, owner);
+                }
+            }
+            
+            return null;
         }
     }
 
@@ -94,15 +143,16 @@ public class AArch64Tombstone extends TroubleEntity {
 
     @Data
     public static class SpecialRegisterInfo {
-        private Long ESR;
-        private Long ELR;
-        private Long FAR;
-        private Long PSTATE;
-        public SpecialRegisterInfo(Long ESR, Long ELR, Long FAR, Long PSTATE) {
-            this.ESR = ESR;
-            this.ELR = ELR;
-            this.FAR = FAR;
-            this.PSTATE = PSTATE;
+        private Long lr;
+        private Long sp;
+        private Long pc;
+        private Long pst;
+        
+        public SpecialRegisterInfo(Long lr, Long sp, Long pc, Long pst) {
+            this.lr = lr;
+            this.sp = sp;
+            this.pc = pc;
+            this.pst = pst;
         }
     }
 
