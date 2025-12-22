@@ -275,6 +275,7 @@ public class AndroidAArch64FileService implements FileService {
                 
                 String symbol = null;
                 String mapsInfo = null;
+                AArch64Tombstone.StackDumpInfo.StackFrame.AddressType addressType = AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.OFFSET;
                 if (parts.length >= 5) {
                     mapsInfo = parts[3]; // 共享库路径
                     symbol = parts[4];   // 符号信息（函数名等）
@@ -288,16 +289,20 @@ public class AndroidAArch64FileService implements FileService {
                     // BuildId 格式类似于: BuildId: f992d84feb3f8b8e5f0f7268aeaa2f5d
                     if (symbol.startsWith("BuildId:")) {
                         symbol = null;
+                        // 如果只有BuildId信息，没有符号信息，则地址类型为绝对地址
+                        addressType = AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.ABSOLUTE;
                     }
                 } else if (parts.length >= 4) {
                     mapsInfo = parts[3];
+                    // 如果只有映射信息但没有符号信息，则地址类型为绝对地址
+                    addressType = AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.ABSOLUTE;
                 }
                 
                 AArch64Tombstone.StackDumpInfo.StackFrame stackFrame = new AArch64Tombstone.StackDumpInfo.StackFrame(
                     null, // offsetFromSymbolStart
                     symbol, // symbol
                     mapsInfo, // mapsInfo
-                    AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.ABSOLUTE, // addressType
+                    addressType, // addressType
                     address, // address
                     index // index
                 );

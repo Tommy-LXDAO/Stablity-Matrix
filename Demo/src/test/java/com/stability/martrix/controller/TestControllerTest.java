@@ -1,39 +1,80 @@
-package com.stability.martrix.service;
+package com.stability.martrix.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stability.martrix.entity.AArch64Tombstone;
 import com.stability.martrix.entity.TroubleEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-class AndroidAArch64FileServiceSpringBootTest {
+@AutoConfigureMockMvc
+class TestControllerTest {
 
     @Autowired
-    private AndroidAArch64FileService androidAArch64FileService;
+    private MockMvc mockMvc;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
-    void testParseFileWithList() throws Exception {
-        // 从文件读取内容到List<String>
-        List<String> lines = Files.readAllLines(
-                Paths.get("src/main/resources/tombstone_00"));
+    void testQuery() throws Exception {
+        // 准备测试文件
+        ClassPathResource resource = new ClassPathResource("tombstone_00");
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "tombstone_00",
+                "text/plain",
+                resource.getInputStream()
+        );
 
-        // 使用服务解析
-        TroubleEntity entity = androidAArch64FileService.parseFile(lines);
+        // 执行POST请求并获取结果
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders
+                        .multipart("/test/query")
+                        .file(file))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        // 校验解析结果
+        // 将返回的JSON转换为对象
+        String content = result.getResponse().getContentAsString();
+        TroubleEntity entity = objectMapper.readValue(content, TroubleEntity.class);
+        
+        // 验证解析结果
         validateTombstoneInfo(entity);
     }
+    
+    @Test
+    void testAnalyze() throws Exception {
+        // 准备测试文件
+        ClassPathResource resource = new ClassPathResource("tombstone_00");
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "tombstone_00",
+                "text/plain",
+                resource.getInputStream()
+        );
 
+        // 执行POST请求到/analyze端点
+        mockMvc.perform(MockMvcRequestBuilders
+                        .multipart("/test/analyze")
+                        .file(file))
+                .andExpect(status().isOk());
+        // 注意：由于没有配置真实的AI服务，这里只是验证HTTP状态码
+        // 在实际使用中，需要配置正确的AI服务端点和认证信息
+    }
+    
     private void validateTombstoneInfo(TroubleEntity entity) {
         assertNotNull(entity, "实体不应为空");
-        assertInstanceOf(AArch64Tombstone.class, entity, "实体应为AArch64Tombstone类型");
+        assertTrue(entity instanceof AArch64Tombstone, "实体应为AArch64Tombstone类型");
 
         AArch64Tombstone tombstone = (AArch64Tombstone) entity;
 
@@ -56,7 +97,7 @@ class AndroidAArch64FileServiceSpringBootTest {
         assertTrue(tombstone.getStackDumpInfo().getStackFrames().size() >= 4, "堆栈帧数量不足");
 
         // 校验具体的堆栈帧信息
-        List<AArch64Tombstone.StackDumpInfo.StackFrame> frames = tombstone.getStackDumpInfo().getStackFrames();
+        var frames = tombstone.getStackDumpInfo().getStackFrames();
         // 第0个堆栈帧
         assertEquals(0, frames.get(0).getIndex(), "第一个堆栈帧索引不正确");
         assertEquals(0x5a8ccL, frames.get(0).getAddress(), "第一个堆栈帧地址不正确");
@@ -105,22 +146,22 @@ class AndroidAArch64FileServiceSpringBootTest {
         assertEquals(0x73622a85L, tombstone.getRegisterDumpInfo().getX11(), "X11寄存器值不匹配");
         assertEquals(0x7c5072d028L, tombstone.getRegisterDumpInfo().getX12(), "X12寄存器值不匹配");
         assertEquals(0x7c5072d048L, tombstone.getRegisterDumpInfo().getX13(), "X13寄存器值不匹配");
-        assertEquals(0x7bdab4fcc0L, tombstone.getRegisterDumpInfo().getX14(), "X14寄存器값不匹配");
-        assertEquals(0x0L, tombstone.getRegisterDumpInfo().getX15(), "X15寄存器값不匹配");
-        assertEquals(0x7d0f7faf50L, tombstone.getRegisterDumpInfo().getX16(), "X16寄存器값不匹配");
-        assertEquals(0x7d09b42400L, tombstone.getRegisterDumpInfo().getX17(), "X17寄存器값不匹配");
-        assertEquals(0x7bda2d0000L, tombstone.getRegisterDumpInfo().getX18(), "X18寄存器값不匹配");
-        assertEquals(0x7c50ab0180L, tombstone.getRegisterDumpInfo().getX19(), "X19寄存器값不匹配");
-        assertEquals(0x1L, tombstone.getRegisterDumpInfo().getX20(), "X20寄存器값不匹配");
-        assertEquals(0x7c5072d048L, tombstone.getRegisterDumpInfo().getX21(), "X21寄存器값不匹配");
-        assertEquals(0x7c5072d028L, tombstone.getRegisterDumpInfo().getX22(), "X22寄存器값不匹配");
-        assertEquals(0x7d0f7a87fcL, tombstone.getRegisterDumpInfo().getX23(), "X23寄存器값不匹配");
-        assertEquals(0x20L, tombstone.getRegisterDumpInfo().getX24(), "X24寄存器값不匹配");
-        assertEquals(0x7bdab51000L, tombstone.getRegisterDumpInfo().getX25(), "X25寄存器값不匹配");
-        assertEquals(0x7c50ab0188L, tombstone.getRegisterDumpInfo().getX26(), "X26寄存器값不匹配");
-        assertEquals(0x7c50ab01a8L, tombstone.getRegisterDumpInfo().getX27(), "X27寄存器값不匹配");
-        assertEquals(0x7d0f7fc000L, tombstone.getRegisterDumpInfo().getX28(), "X28寄存器값不匹配");
-        assertEquals(0x7bdab4f9d0L, tombstone.getRegisterDumpInfo().getX29(), "X29寄存器값不匹配");
+        assertEquals(0x7bdab4fcc0L, tombstone.getRegisterDumpInfo().getX14(), "X14寄存器值不匹配");
+        assertEquals(0x0L, tombstone.getRegisterDumpInfo().getX15(), "X15寄存器值不匹配");
+        assertEquals(0x7d0f7faf50L, tombstone.getRegisterDumpInfo().getX16(), "X16寄存器值不匹配");
+        assertEquals(0x7d09b42400L, tombstone.getRegisterDumpInfo().getX17(), "X17寄存器值不匹配");
+        assertEquals(0x7bda2d0000L, tombstone.getRegisterDumpInfo().getX18(), "X18寄存器值不匹配");
+        assertEquals(0x7c50ab0180L, tombstone.getRegisterDumpInfo().getX19(), "X19寄存器值不匹配");
+        assertEquals(0x1L, tombstone.getRegisterDumpInfo().getX20(), "X20寄存器值不匹配");
+        assertEquals(0x7c5072d048L, tombstone.getRegisterDumpInfo().getX21(), "X21寄存器值不匹配");
+        assertEquals(0x7c5072d028L, tombstone.getRegisterDumpInfo().getX22(), "X22寄存器值不匹配");
+        assertEquals(0x7d0f7a87fcL, tombstone.getRegisterDumpInfo().getX23(), "X23寄存器值不匹配");
+        assertEquals(0x20L, tombstone.getRegisterDumpInfo().getX24(), "X24寄存器值不匹配");
+        assertEquals(0x7bdab51000L, tombstone.getRegisterDumpInfo().getX25(), "X25寄存器值不匹配");
+        assertEquals(0x7c50ab0188L, tombstone.getRegisterDumpInfo().getX26(), "X26寄存器值不匹配");
+        assertEquals(0x7c50ab01a8L, tombstone.getRegisterDumpInfo().getX27(), "X27寄存器值不匹配");
+        assertEquals(0x7d0f7fc000L, tombstone.getRegisterDumpInfo().getX28(), "X28寄存器值不匹配");
+        assertEquals(0x7bdab4f9d0L, tombstone.getRegisterDumpInfo().getX29(), "X29寄存器值不匹配");
 
         // 校验特殊寄存器信息
         assertNotNull(tombstone.getSpecialRegisterInfo(), "特殊寄存器信息为空");
@@ -128,10 +169,10 @@ class AndroidAArch64FileServiceSpringBootTest {
         assertNotNull(specialReg.getLr(), "LR寄存器为空");
         assertEquals(0x7d0f7a7fb8L, specialReg.getLr(), "LR寄存器值不匹配");
         assertNotNull(specialReg.getSp(), "SP寄存器为空");
-        assertEquals(0x7bdab4f9a0L, specialReg.getSp(), "SP寄存器값不匹配");
+        assertEquals(0x7bdab4f9a0L, specialReg.getSp(), "SP寄存器值不匹配");
         assertNotNull(specialReg.getPc(), "PC寄存器为空");
-        assertEquals(0x7d0f79d8ccL, specialReg.getPc(), "PC寄存器값不匹配");
+        assertEquals(0x7d0f79d8ccL, specialReg.getPc(), "PC寄存器值不匹配");
         assertNotNull(specialReg.getPst(), "PST寄存器为空");
-        assertEquals(0x60001000L, specialReg.getPst(), "PST寄存器값不匹配");
+        assertEquals(0x60001000L, specialReg.getPst(), "PST寄存器值不匹配");
     }
 }

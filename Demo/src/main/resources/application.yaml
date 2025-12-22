@@ -5,26 +5,17 @@ server:
 spring:
   # Spring AI 配置
   ai:
-    # 智谱AI大模型配置
-    zhipuai:
-      api-key: ${ZHIPU_KEY}  # 智谱API密钥（从环境变量ZHIPU_KEY获取）
+    # OpenAI大模型配置 (适用于任何OpenAI兼容的API)
+    openai:
+      api-key: ${NEWAPI_KEY:${OPENAI_API_KEY:}}  # NEWAPI_KEY优先，其次OPENAI_API_KEY，最后为空
+      base-url: ${NEWAPI_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com}}  # NEWAPI_BASE_URL优先，其次OPENAI_BASE_URL
       chat:
         options:
-          model: glm-4.6  # 使用的聊天模型名称（GLM-4.6）
+          model: ${NEWAPI_MODEL:${OPENAI_MODEL:Qwen/Qwen3-235B-A22B-Instruct-2507}}  # NEWAPI_MODEL优先，其次OPENAI_MODEL
       embedding:
+        enabled: ${OPENAI_EMBEDDING_ENABLED:false}  # 默认不启用embedding功能
         options:
-          model: embedding-3  # 使用的嵌入模型名称（embedding-3）
-          dimensions: 256  # 嵌入向量的维度（256维）
-#    mcp:
-#      client:
-#        sse:
-#          connections:
-#            server1:
-#              url: http://127.0.0.1:8080 # mcp服务url
-#            fetcher-mcp:
-#              url: http://127.0.0.1:3000
-#            web-search:
-#              url: http://127.0.0.1:3001
+          model: ${NEWAPI_EMBEDDING_MODEL:${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}}  # Embedding模型配置
     # 向量存储配置
     vectorstore:
       redis:
@@ -44,3 +35,8 @@ spring:
   mvc:
     async:
       request-timeout: 300s
+
+# Chat Client 配置
+chat:
+  client:
+    base-url: ${NEWAPI_BASE_URL:${OPENAI_BASE_URL:https://huazi.jack-rose.site/}}  # 默认使用OpenAI的API地址
