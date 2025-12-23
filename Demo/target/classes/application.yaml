@@ -37,4 +37,4 @@ spring:
 # Chat Client 配置
 chat:
   client:
-    base-url: ${NEWAPI_BASE_URL:${OPENAI_BASE_URL:https://huazi.jack-rose.site/}}  # 默认使用OpenAI的API地址
+    base-url: ${NEWAPI_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com}}  # 默认使用OpenAI的API地址

@@ -5,6 +5,7 @@ import com.stability.martrix.entity.AArch64Tombstone;
 import com.stability.martrix.entity.register.AArch64RegisterDumpInfo;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +33,11 @@ public class AITroubleAnalysisService {
                 systemPromptTemplate.createMessage(),
                 new UserMessage(question)
         );
-        return chatClient.prompt(prompt).call().content();
+        ChatResponse chatResponse = chatClient.prompt(prompt).call().chatResponse();
+        if (chatResponse == null || chatResponse.getResults().isEmpty()) {
+            return "获取结果失败";
+        }
+        return chatResponse.getResults().getFirst().getOutput().getText();
     }
 
     /**
