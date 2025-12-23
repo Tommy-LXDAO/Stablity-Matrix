@@ -17,8 +17,8 @@ public class AITroubleAnalysisService {
     private final ChatClient chatClient;
 
     @Autowired
-    public AITroubleAnalysisService(ChatClient chatClient) {
-        this.chatClient = chatClient;
+    public AITroubleAnalysisService(ChatClient.Builder builder) {
+        this.chatClient = builder.build();
     }
 
     /**

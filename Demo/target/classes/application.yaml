@@ -6,12 +6,14 @@ spring:
   # Spring AI 配置
   ai:
     # OpenAI大模型配置 (适用于任何OpenAI兼容的API)
-    openai:
+    openai-sdk:
       api-key: ${NEWAPI_KEY:${OPENAI_API_KEY:}}  # NEWAPI_KEY优先，其次OPENAI_API_KEY，最后为空
       base-url: ${NEWAPI_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com}}  # NEWAPI_BASE_URL优先，其次OPENAI_BASE_URL
       chat:
         options:
-          model: ${NEWAPI_MODEL:${OPENAI_MODEL:Qwen/Qwen3-235B-A22B-Instruct-2507}}  # NEWAPI_MODEL优先，其次OPENAI_MODEL
+          model: ${NEWAPI_MODEL:${OPENAI_MODEL:DeepSeek-V3.2-Exp}}  # NEWAPI_MODEL优先，其次OPENAI_MODEL
+        credential:
+          bearer-token: ${OPENAI_API_KEY:your-api-key-here}
       embedding:
         enabled: ${OPENAI_EMBEDDING_ENABLED:false}  # 默认不启用embedding功能
         options:
