@@ -14,18 +14,14 @@ spring:
           model: ${NEWAPI_MODEL:${OPENAI_MODEL:DeepSeek-V3.2-Exp}}  # NEWAPI_MODEL优先，其次OPENAI_MODEL
         credential:
           bearer-token: ${OPENAI_API_KEY:your-api-key-here}
-      embedding:
-        enabled: ${OPENAI_EMBEDDING_ENABLED:false}  # 默认不启用embedding功能
-        options:
-          model: ${NEWAPI_EMBEDDING_MODEL:${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}}  # Embedding模型配置
     # 向量存储配置
-    vectorstore:
-      redis:
-        initialize-schema: true  # 启动时自动创建Redis向量索引结构（首次部署需开启）
-        prefix: stability_rag_prefix  # Redis键名前缀，用于区分不同应用的向量数据
-        index: stability_rag_index  # Redis向量索引名称
+#    vectorstore:
+#      redis:
+#        initialize-schema: true  # 启动时自动创建Redis向量索引结构（首次部署需开启）
+#        prefix: stability_rag_prefix  # Redis键名前缀，用于区分不同应用的向量数据
+#        index: stability_rag_index  # Redis向量索引名称
   application:
-    name: lyw-redis-rag  # 应用名称
+    name: Demo  # 应用名称
   # 数据源配置
   data:
     redis:

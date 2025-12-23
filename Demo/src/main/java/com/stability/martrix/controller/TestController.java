@@ -36,8 +36,7 @@ public class TestController {
 
     @GetMapping("/hello")
     public String hello() {
-
-        return "hello";
+        return aiTroubleAnalysisService.simpleQuery("你是谁?你的名字叫什么?");
     }
 
     // 入参为文件，取出文件内容，并进行解析，调用parseFile，然后返回结果

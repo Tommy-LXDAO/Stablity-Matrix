@@ -1,6 +1,8 @@
 package com.stability.martrix.service;
 
+import com.alibaba.fastjson.JSON;
 import com.stability.martrix.entity.AArch64Tombstone;
+import com.stability.martrix.entity.register.AArch64RegisterDumpInfo;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -21,6 +23,18 @@ public class AITroubleAnalysisService {
         this.chatClient = builder.build();
     }
 
+    public String simpleQuery(String question) {
+        String systemPrompt = """
+                你是一个技术专家，你的名字是小明
+                """;
+        SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(systemPrompt);
+        Prompt prompt = new Prompt(
+                systemPromptTemplate.createMessage(),
+                new UserMessage(question)
+        );
+        return chatClient.prompt(prompt).call().content();
+    }
+
     /**
      * 分析AArch64Tombstone故障原因
      *
@@ -33,15 +47,22 @@ public class AITroubleAnalysisService {
                 你是一个Android系统专家，专门分析Native层的crash问题。
                 你需要根据提供的tombstone信息分析故障原因，并给出简明扼要的解释。
                 分析应包括：
-                1. 导致崩溃的可能根本原因
-                2. 涉及的组件或库
-                3. 可能的修复建议
+                1. 导致崩溃的根本原因
+                2. 问题类型：内存访问错误、还是被特殊终止等等其他因素
+                3. 可能的修复建议，并指向应该由哪一层so进行排查
                 
                 请用中文回答，保持专业但易懂的语言。
                 """;
 
-        // 构建用户消息内容
-        String userMessageContent = buildTombstoneDescription(tombstone);
+        // 将tombstone对象转换为JSON格式
+        String tombstoneJson = convertTombstoneToJson(tombstone);
+//        return tombstoneJson;
+        // 构建用户消息内容，包含JSON格式的tombstone数据
+        String userMessageContent = """
+                请分析以下tombstone信息：
+                
+                %s
+                """.formatted(tombstoneJson);
 
         // 创建提示词
         SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(systemPrompt);
@@ -55,72 +76,49 @@ public class AITroubleAnalysisService {
     }
 
     /**
-     * 构建tombstone描述信息
-     *
-     * @param tombstone AArch64Tombstone对象
-     * @return 格式化的tombstone描述
+     * 将AArch64Tombstone对象转换为JSON格式字符串
      */
-    private String buildTombstoneDescription(AArch64Tombstone tombstone) {
-        StringBuilder sb = new StringBuilder();
+    private String convertTombstoneToJson(AArch64Tombstone tombstone) {
+        return JSON.toJSONString(tombstone);
+    }
 
-        sb.append("进程信息:\n");
-        sb.append("- 进程名: ").append(tombstone.getProcessName()).append("\n");
-        sb.append("- PID: ").append(tombstone.getPid()).append("\n");
-        sb.append("- TID: ").append(tombstone.getFirstTid()).append("\n\n");
-
-        if (tombstone.getSignalInfo() != null) {
-            sb.append("信号信息:\n");
-            sb.append("- 信号编号: ").append(tombstone.getSignalInfo().getSigNumber()).append("\n");
-            sb.append("- 信号名称: ").append(tombstone.getSignalInfo().getSigInformation()).append("\n");
-            sb.append("- 错误类型: ").append(tombstone.getSignalInfo().getTroubleInformation()).append("\n");
-            sb.append("- 故障地址: 0x").append(Long.toHexString(tombstone.getSignalInfo().getFaultAddress() != null ?
-                    tombstone.getSignalInfo().getFaultAddress() : 0)).append("\n\n");
+    /**
+     * 获取指定索引的寄存器值
+     */
+    private long getRegisterValue(AArch64RegisterDumpInfo regInfo, int index) {
+        switch (index) {
+            case 0: return regInfo.getX0();
+            case 1: return regInfo.getX1();
+            case 2: return regInfo.getX2();
+            case 3: return regInfo.getX3();
+            case 4: return regInfo.getX4();
+            case 5: return regInfo.getX5();
+            case 6: return regInfo.getX6();
+            case 7: return regInfo.getX7();
+            case 8: return regInfo.getX8();
+            case 9: return regInfo.getX9();
+            case 10: return regInfo.getX10();
+            case 11: return regInfo.getX11();
+            case 12: return regInfo.getX12();
+            case 13: return regInfo.getX13();
+            case 14: return regInfo.getX14();
+            case 15: return regInfo.getX15();
+            case 16: return regInfo.getX16();
+            case 17: return regInfo.getX17();
+            case 18: return regInfo.getX18();
+            case 19: return regInfo.getX19();
+            case 20: return regInfo.getX20();
+            case 21: return regInfo.getX21();
+            case 22: return regInfo.getX22();
+            case 23: return regInfo.getX23();
+            case 24: return regInfo.getX24();
+            case 25: return regInfo.getX25();
+            case 26: return regInfo.getX26();
+            case 27: return regInfo.getX27();
+            case 28: return regInfo.getX28();
+            case 29: return regInfo.getX29();
+            case 30: return regInfo.getX30();
+            default: return 0;
         }
-
-        if (tombstone.getStackDumpInfo() != null && tombstone.getStackDumpInfo().getStackFrames() != null) {
-            sb.append("堆栈信息:\n");
-            for (AArch64Tombstone.StackDumpInfo.StackFrame frame : tombstone.getStackDumpInfo().getStackFrames()) {
-                if (frame.getIndex() < 10) { // 只显示前10个堆栈帧
-                    sb.append("#").append(frame.getIndex()).append(" ");
-                    sb.append("地址: 0x").append(Long.toHexString(frame.getAddress() != null ? frame.getAddress() : 0)).append(" ");
-                    sb.append("库: ").append(frame.getMapsInfo() != null ? frame.getMapsInfo() : "未知").append(" ");
-                    if (frame.getSymbol() != null) {
-                        sb.append("符号: ").append(frame.getSymbol());
-                    }
-                    sb.append("\n");
-                }
-            }
-            sb.append("\n");
-        }
-
-        if (tombstone.getRegisterDumpInfo() != null) {
-            sb.append("关键寄存器信息:\n");
-            sb.append("- X0: 0x").append(Long.toHexString(tombstone.getRegisterDumpInfo().getX0())).append("\n");
-            sb.append("- X1: 0x").append(Long.toHexString(tombstone.getRegisterDumpInfo().getX1())).append("\n");
-            sb.append("- X2: 0x").append(Long.toHexString(tombstone.getRegisterDumpInfo().getX2())).append("\n");
-            sb.append("- X3: 0x").append(Long.toHexString(tombstone.getRegisterDumpInfo().getX3())).append("\n");
-            sb.append("- PC: 0x").append(Long.toHexString(tombstone.getRegisterDumpInfo().getPc())).append("\n");
-            sb.append("- SP: 0x").append(Long.toHexString(tombstone.getRegisterDumpInfo().getSp())).append("\n");
-            sb.append("- LR: 0x").append(Long.toHexString(tombstone.getRegisterDumpInfo().getX30())).append("\n\n");
-        }
-
-        if (tombstone.getSpecialRegisterInfo() != null) {
-            sb.append("特殊寄存器信息:\n");
-            if (tombstone.getSpecialRegisterInfo().getLr() != null) {
-                sb.append("- LR: 0x").append(Long.toHexString(tombstone.getSpecialRegisterInfo().getLr())).append("\n");
-            }
-            if (tombstone.getSpecialRegisterInfo().getSp() != null) {
-                sb.append("- SP: 0x").append(Long.toHexString(tombstone.getSpecialRegisterInfo().getSp())).append("\n");
-            }
-            if (tombstone.getSpecialRegisterInfo().getPc() != null) {
-                sb.append("- PC: 0x").append(Long.toHexString(tombstone.getSpecialRegisterInfo().getPc())).append("\n");
-            }
-            if (tombstone.getSpecialRegisterInfo().getPst() != null) {
-                sb.append("- PST: 0x").append(Long.toHexString(tombstone.getSpecialRegisterInfo().getPst())).append("\n");
-            }
-            sb.append("\n");
-        }
-
-        return sb.toString();
     }
 }

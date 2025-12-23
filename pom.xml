@@ -23,8 +23,6 @@
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-ai.version>1.1.1</spring-ai.version>
-        <spring-ai-alibaba.version>1.0.0.4</spring-ai-alibaba.version>
-
         <!-- Spring Boot -->
         <spring-boot.version>3.5.8</spring-boot.version>
     </properties>
