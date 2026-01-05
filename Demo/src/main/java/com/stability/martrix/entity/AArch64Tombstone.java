@@ -29,18 +29,20 @@ public class AArch64Tombstone extends TroubleEntity {
             private String mapsInfo;
             private String symbol;
             private Long offsetFromSymbolStart;
+            private String buildId;
             public static enum AddressType {
                 ABSOLUTE,
                 OFFSET
             }
 
-            public StackFrame(Long offsetFromSymbolStart, String symbol, String mapsInfo, AddressType addressType, Long address, int index) {
+            public StackFrame(Long offsetFromSymbolStart, String symbol, String mapsInfo, AddressType addressType, Long address, int index, String buildId) {
                 this.offsetFromSymbolStart = offsetFromSymbolStart;
                 this.symbol = symbol;
                 this.mapsInfo = mapsInfo;
                 this.addressType = addressType;
                 this.address = address;
                 this.index = index;
+                this.buildId = buildId;
             }
         }
     }

@@ -241,7 +241,8 @@ public class AndroidAArch64FileService implements FileService {
             return null;
         }
     }
-    
+
+    // TODO: 这里解析buildId和symbol存在bug
     private AArch64Tombstone.StackDumpInfo parseBacktraceInfo(List<String> lines, int startIndex) {
         AArch64Tombstone.StackDumpInfo stackDumpInfo = new AArch64Tombstone.StackDumpInfo();
         // 解析堆栈回溯信息
@@ -254,61 +255,137 @@ public class AndroidAArch64FileService implements FileService {
                 break;
             }
             
-            // 解析每一行堆栈信息
-            String[] parts = line.split("\\s+", 5); // 最多分成5部分
-            if (parts.length >= 4) {
-                int index = Integer.parseInt(parts[0].substring(1)); // 移除 # 前缀
-                
-                Long address = null;
-                if (parts.length > 2) {
-                    try {
-                        String pcStr = parts[2];
-                        if (pcStr.startsWith("0x")) {
-                            address = Long.parseLong(pcStr.substring(2), 16);
-                        } else {
-                            address = Long.parseLong(pcStr, 16);
-                        }
-                    } catch (NumberFormatException e) {
-                        // 忽略解析错误
-                    }
-                }
-                
-                String symbol = null;
-                String mapsInfo = null;
-                AArch64Tombstone.StackDumpInfo.StackFrame.AddressType addressType = AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.OFFSET;
-                if (parts.length >= 5) {
-                    mapsInfo = parts[3]; // 共享库路径
-                    symbol = parts[4];   // 符号信息（函数名等）
-                    
-                    // 清理符号信息，移除括号
-                    if (symbol.startsWith("(") && symbol.endsWith(")")) {
-                        symbol = symbol.substring(1, symbol.length() - 1);
-                    }
-                    
-                    // 如果符号信息实际上是 BuildId，则将其置为 null
-                    // BuildId 格式类似于: BuildId: f992d84feb3f8b8e5f0f7268aeaa2f5d
-                    if (symbol.startsWith("BuildId:")) {
-                        symbol = null;
-                        // 如果只有BuildId信息，没有符号信息，则地址类型为绝对地址
-                        addressType = AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.ABSOLUTE;
-                    }
-                } else if (parts.length >= 4) {
-                    mapsInfo = parts[3];
-                    // 如果只有映射信息但没有符号信息，则地址类型为绝对地址
-                    addressType = AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.ABSOLUTE;
-                }
-                
-                AArch64Tombstone.StackDumpInfo.StackFrame stackFrame = new AArch64Tombstone.StackDumpInfo.StackFrame(
-                    null, // offsetFromSymbolStart
-                    symbol, // symbol
-                    mapsInfo, // mapsInfo
-                    addressType, // addressType
-                    address, // address
-                    index // index
-                );
-                
-                stackFrames.add(stackFrame);
+            // 使用更精确的正则表达式解析堆栈行
+            // 模式: #index pc address library_path (symbol+offset) (BuildId: ...) 或 #index pc address library_path (BuildId: ...) 或 #index pc address library_path (symbol+offset)
+            // 我们需要从右到左解析，先找到BuildId，然后是符号
+            String[] parts = line.split("\\s+");
+            if (parts.length < 4) {
+                continue;
             }
+            
+            // 解析索引
+            int index = Integer.parseInt(parts[0].substring(1)); // 移除 # 前缀
+            
+            // 解析地址
+            Long address = null;
+            try {
+                String pcStr = parts[2];
+                if (pcStr.startsWith("0x")) {
+                    address = Long.parseLong(pcStr.substring(2), 16);
+                } else {
+                    address = Long.parseLong(pcStr, 16);
+                }
+            } catch (NumberFormatException e) {
+                // 忽略解析错误
+            }
+            
+            // 解析库路径
+            String mapsInfo = parts[3];
+            
+            // 解析符号、偏移量和BuildId
+            String symbol = null;
+            Long offsetFromSymbolStart = null;
+            String buildId = null;
+            AArch64Tombstone.StackDumpInfo.StackFrame.AddressType addressType = AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.OFFSET;
+            
+            // 从第4个部分开始，构建完整字符串以解析符号和BuildId
+            StringBuilder fullInfoBuilder = new StringBuilder();
+            for (int j = 4; j < parts.length; j++) {
+                if (j > 4) fullInfoBuilder.append(" ");
+                fullInfoBuilder.append(parts[j]);
+            }
+            
+            String fullInfo = fullInfoBuilder.toString();
+            
+            // 查找BuildId，格式为 (BuildId: ...)
+            int buildIdStart = -1;
+            int buildIdEnd = -1;
+            
+            // 查找BuildId模式
+            int tempBuildIdStart = fullInfo.indexOf("(BuildId: ");
+            if (tempBuildIdStart != -1) {
+                buildIdEnd = fullInfo.indexOf(")", tempBuildIdStart);
+                if (buildIdEnd != -1) {
+                    buildIdStart = tempBuildIdStart;
+                }
+            }
+            
+            if (buildIdStart != -1 && buildIdEnd != -1) {
+                // 提取BuildId
+                buildId = fullInfo.substring(buildIdStart + 10, buildIdEnd).trim(); // 10 = length of "(BuildId: "
+                
+                // 提取符号部分（BuildId之前的部分）
+                String symbolPart = fullInfo.substring(0, buildIdStart).trim();
+                
+                // 清理符号部分的括号
+                if (symbolPart.startsWith("(") && symbolPart.endsWith(")")) {
+                    symbolPart = symbolPart.substring(1, symbolPart.length() - 1);
+                }
+                
+                if (!symbolPart.isEmpty()) {
+                    // 解析符号和偏移量
+                    int lastPlusIndex = symbolPart.lastIndexOf('+');
+                    if (lastPlusIndex != -1) {
+                        // 分离符号和偏移量
+                        String potentialSymbol = symbolPart.substring(0, lastPlusIndex).trim();
+                        String offsetStr = symbolPart.substring(lastPlusIndex + 1).trim();
+                        
+                        // 验证偏移量是否为数字
+                        try {
+                            offsetFromSymbolStart = Long.parseLong(offsetStr);
+                            symbol = potentialSymbol;
+                        } catch (NumberFormatException e) {
+                            // 如果偏移量不是数字，则整个部分是符号
+                            symbol = symbolPart;
+                        }
+                    } else {
+                        // 没有偏移量，整个部分是符号
+                        symbol = symbolPart;
+                    }
+                }
+            } else {
+                // 没有BuildId，解析符号部分
+                String symbolPart = fullInfo;
+                
+                // 清理符号部分的括号
+                if (symbolPart.startsWith("(") && symbolPart.endsWith(")")) {
+                    symbolPart = symbolPart.substring(1, symbolPart.length() - 1);
+                }
+                
+                if (!symbolPart.isEmpty()) {
+                    // 解析符号和偏移量
+                    int lastPlusIndex = symbolPart.lastIndexOf('+');
+                    if (lastPlusIndex != -1) {
+                        // 分离符号和偏移量
+                        String potentialSymbol = symbolPart.substring(0, lastPlusIndex).trim();
+                        String offsetStr = symbolPart.substring(lastPlusIndex + 1).trim();
+                        
+                        // 验证偏移量是否为数字
+                        try {
+                            offsetFromSymbolStart = Long.parseLong(offsetStr);
+                            symbol = potentialSymbol;
+                        } catch (NumberFormatException e) {
+                            // 如果偏移量不是数字，则整个部分是符号
+                            symbol = symbolPart;
+                        }
+                    } else {
+                        // 没有偏移量，整个部分是符号
+                        symbol = symbolPart;
+                    }
+                }
+            }
+
+            AArch64Tombstone.StackDumpInfo.StackFrame stackFrame = new AArch64Tombstone.StackDumpInfo.StackFrame(
+                offsetFromSymbolStart, // offsetFromSymbolStart
+                symbol, // symbol
+                mapsInfo, // mapsInfo
+                addressType, // addressType
+                address, // address
+                index, // index
+                buildId // buildId
+            );
+            
+            stackFrames.add(stackFrame);
         }
         
         stackDumpInfo.setStackFrames(stackFrames);

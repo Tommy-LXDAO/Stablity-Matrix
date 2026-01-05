@@ -68,7 +68,8 @@ public class TestController {
         }
         
         AArch64Tombstone tombstone = (AArch64Tombstone) entity;
-        
+        // TODO: 使用既有的问题维护表来查找已知问题
+
         // 使用AI分析故障原因
         return aiTroubleAnalysisService.analyzeTrouble(tombstone);
     }
