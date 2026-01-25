@@ -85,7 +85,7 @@ class AndroidAArch64FileServiceSpringBootTest {
         assertEquals(3, frames.get(3).getIndex(), "第四个堆栈帧索引不正确");
         assertEquals(0x5cf80L, frames.get(3).getAddress(), "第四个堆栈帧地址不正确");
         assertEquals("/system/lib64/libbinder.so", frames.get(3).getMapsInfo(), "第四个堆栈帧映射信息不正确");
-        assertEquals(AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.ABSOLUTE, frames.get(3).getAddressType(), "第四个堆栈帧地址类型不正确");
+        assertEquals(AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.OFFSET, frames.get(3).getAddressType(), "第四个堆栈帧地址类型不正确");
         assertNull(frames.get(3).getSymbol(), "第四个堆栈帧符号信息应该为空");
 
         // 校验寄存器信息

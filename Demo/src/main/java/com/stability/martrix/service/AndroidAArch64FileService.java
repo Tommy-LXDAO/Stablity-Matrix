@@ -133,19 +133,26 @@ public class AndroidAArch64FileService implements FileService {
     private void parseLines(List<String> lines, AArch64Tombstone tombstone) {
         // 用于收集Fd信息
         List<AArch64Tombstone.FdInfo> fdInfos = new ArrayList<>();
-        
+        boolean backtraceParsed = false;
+        boolean registerParsed = false;
+        boolean pidParsed = false;
+//        boolean specialRegisterParsed = false;
+
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             if (line.contains("Cmdline:")) {
                 parseCmdlineLine(line, tombstone);
-            } else if (line.startsWith("pid:")) {
+            } else if (!pidParsed && line.startsWith("pid:")) {
+                pidParsed = true;
                 parsePidLine(line, tombstone);
             } else if (line.startsWith("signal ")) {
                 tombstone.setSignalInfo(parseSignalInfo(line));
-            } else if (line.startsWith("backtrace:")) {
+            } else if (!backtraceParsed && line.startsWith("backtrace:")) {
+                backtraceParsed = true;
                 // 解析堆栈回溯信息
                 tombstone.setStackDumpInfo(parseBacktraceInfo(lines, i));
-            } else if (line.contains("x0  ")) {
+            } else if (!registerParsed && line.contains("x0  ")) {
+                registerParsed = true;
                 // 解析寄存器信息
                 tombstone.setRegisterDumpInfo(parseRegisterInfo(lines, i));
             } else if (line.contains("lr ")) {
