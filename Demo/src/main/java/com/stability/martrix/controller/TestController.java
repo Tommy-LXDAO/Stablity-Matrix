@@ -7,7 +7,6 @@ import com.stability.martrix.dto.PatternMatchResult;
 import com.stability.martrix.entity.AArch64Tombstone;
 import com.stability.martrix.entity.TroubleEntity;
 import com.stability.martrix.service.AITroubleAnalysisService;
-import com.stability.martrix.service.AndroidAbortService;
 import com.stability.martrix.service.FileService;
 import com.stability.martrix.service.PatternMatchService;
 import com.stability.martrix.util.TombstoneFormatter;
@@ -34,18 +33,15 @@ public class TestController {
     private static final Logger logger = Logger.getLogger(TestController.class.getName());
     private final FileService aarch64DemoFileService;
     private final AITroubleAnalysisService aiTroubleAnalysisService;
-    private final AndroidAbortService androidAbortService;
     private final PatternMatchService patternMatchService;
     private final ChatClient chatClient;
 
     public TestController(@AndroidAArch64Demo FileService aarch64DemoFileService,
                           AITroubleAnalysisService aiTroubleAnalysisService,
-                          AndroidAbortService androidAbortService,
                           PatternMatchService patternMatchService,
                           ChatClient.Builder chatClientBuilder) {
         this.aarch64DemoFileService = aarch64DemoFileService;
         this.aiTroubleAnalysisService = aiTroubleAnalysisService;
-        this.androidAbortService = androidAbortService;
         this.patternMatchService = patternMatchService;
         this.chatClient = chatClientBuilder.build();
     }
@@ -110,8 +106,8 @@ public class TestController {
         return aiAnalysis;
     }
 
-    @PostMapping("/demo/analyzeAbort")
-    public String demoAnalyzeAbort(@RequestParam("file") MultipartFile file) {
+    @PostMapping("/demo/analyzeTombstone")
+    public String analyzeTombstone(@RequestParam("file") MultipartFile file) {
         try {
             TroubleEntity troubleEntity = simpleQuery(file);
 
