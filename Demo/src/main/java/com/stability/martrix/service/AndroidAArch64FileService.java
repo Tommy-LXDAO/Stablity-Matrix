@@ -136,6 +136,7 @@ public class AndroidAArch64FileService implements FileService {
         boolean backtraceParsed = false;
         boolean registerParsed = false;
         boolean pidParsed = false;
+        boolean specialRegisterParsed = false;
 //        boolean specialRegisterParsed = false;
 
         for (int i = 0; i < lines.size(); i++) {
@@ -155,11 +156,11 @@ public class AndroidAArch64FileService implements FileService {
                 registerParsed = true;
                 // 解析寄存器信息
                 tombstone.setRegisterDumpInfo(parseRegisterInfo(lines, i));
-            } else if (line.contains("lr ")) {
+            } else if (!specialRegisterParsed && line.contains("lr ")) {
+                specialRegisterParsed = true;
                 // 解析特殊寄存器信息:     lr  0000007d0f7a7fb8  sp  0000007bdab4f9a0  pc  0000007d0f79d8cc  pst 0000000060001000
                 AArch64Tombstone.SpecialRegisterInfo specialRegisterInfo = parseSpecialRegisterInfo(lines, i);
                 if (specialRegisterInfo != null) tombstone.setSpecialRegisterInfo(specialRegisterInfo);
-
             } else if (line.contains("open files:")) {
                 // 解析文件描述符信息
                 fdInfos = parseFdInfo(lines, i);
