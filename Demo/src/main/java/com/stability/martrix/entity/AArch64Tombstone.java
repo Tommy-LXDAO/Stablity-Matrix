@@ -3,7 +3,7 @@ package com.stability.martrix.entity;
 import com.stability.martrix.entity.register.AArch64RegisterDumpInfo;
 import com.stability.martrix.enums.CPUArchitecture;
 import lombok.Data;
-import reactor.core.publisher.Signal;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -22,6 +22,7 @@ public class AArch64Tombstone extends TroubleEntity {
     public static class StackDumpInfo{
         private List<StackFrame> stackFrames;
         @Data
+        @NoArgsConstructor
         public static class StackFrame{
             private int index;
             private Long address;
@@ -48,6 +49,7 @@ public class AArch64Tombstone extends TroubleEntity {
     }
 
     @Data
+    @NoArgsConstructor
     public static class SignalInfo {
         private int sigNumber;
         private String sigInformation;
@@ -70,6 +72,7 @@ public class AArch64Tombstone extends TroubleEntity {
     }
 
     @Data
+    @NoArgsConstructor
     public static class FdInfo {
         private int fd;
         private String path;
@@ -82,6 +85,7 @@ public class AArch64Tombstone extends TroubleEntity {
         }
 
         @Data
+        @NoArgsConstructor
         public static class FdsanInfo{
             private String ownedType;
             private long owner;
@@ -130,6 +134,7 @@ public class AArch64Tombstone extends TroubleEntity {
     }
 
     @Data
+    @NoArgsConstructor
     public static class MapsInfo {
         private Long start;
         private Long end;
@@ -144,6 +149,7 @@ public class AArch64Tombstone extends TroubleEntity {
     }
 
     @Data
+    @NoArgsConstructor
     public static class SpecialRegisterInfo {
         private Long lr;
         private Long sp;

@@ -1,7 +1,5 @@
 package com.stability.martrix.controller;
 
-import com.stability.martrix.annotation.AArch64;
-import com.stability.martrix.annotation.AArch64Demo;
 import com.stability.martrix.annotation.AndroidAArch64Demo;
 import com.stability.martrix.dto.PatternMatchResult;
 import com.stability.martrix.entity.AArch64Tombstone;
@@ -11,8 +9,11 @@ import com.stability.martrix.service.FileService;
 import com.stability.martrix.service.PatternMatchService;
 import com.stability.martrix.util.TombstoneFormatter;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -23,9 +24,8 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
- * 文件预处理
+ * 测试控制器
  */
-
 @RestController
 @RequestMapping("/test")
 public class TestController {
@@ -51,65 +51,35 @@ public class TestController {
         return aiTroubleAnalysisService.simpleQuery("你是谁?你的名字叫什么?");
     }
 
-    // 入参为文件，取出文件内容，并进行解析，调用parseFile，然后返回结果
+    /**
+     * 解析文件接口
+     * 入参为文件，取出文件内容，并进行解析，调用parseFile，然后返回结果
+     *
+     * @param file 上传的文件
+     * @return 解析结果
+     */
     @PostMapping("/query")
-    public TroubleEntity simpleQuery(@RequestParam("file") MultipartFile file) throws Exception {
+    public TroubleEntity query(@RequestParam("file") MultipartFile file) throws Exception {
         // 将MultipartFile转换为List<String>
         List<String> lines = new BufferedReader(new InputStreamReader(file.getInputStream()))
                 .lines()
                 .collect(Collectors.toList());
-        
+
         // 调用parseFile方法解析文件内容
         return aarch64DemoFileService.parseFile(lines);
     }
-    
-    // 分析tombstone文件的故障原因
-    @PostMapping("/analyze")
-    public String analyzeTrouble(@RequestParam("file") MultipartFile file) throws Exception {
-        // 将MultipartFile转换为List<String>
-        List<String> lines = new BufferedReader(new InputStreamReader(file.getInputStream()))
-                .lines()
-                .collect(Collectors.toList());
-        
-        // 调用parseFile方法解析文件内容
-        TroubleEntity entity = aarch64DemoFileService.parseFile(lines);
-        
-        // 确保解析结果是AArch64Tombstone类型
-        if (!(entity instanceof AArch64Tombstone)) {
-            return "错误：无法解析为AArch64Tombstone格式";
-        }
-        
-        AArch64Tombstone tombstone = (AArch64Tombstone) entity;
 
-        // Step 1: 使用既有的问题维护表来查找已知问题
-        String patternMatchResult = null;
-        if (tombstone.getSignalInfo() != null) {
-            var result = patternMatchService.analyzePattern(tombstone);
-            if (result != null) {
-                patternMatchResult = String.format(
-                    "[模式匹配结果] 置信度: %.2f, 分析: %s, 直接结论: %s\n\n",
-                    result.getConfidence(),
-                    result.getResult(),
-                    result.isDirectConclusion() ? "是" : "否"
-                );
-            }
-        }
-
-        // Step 2: 使用AI分析故障原因
-        String aiAnalysis = aiTroubleAnalysisService.analyzeTrouble(tombstone);
-
-        // Step 3: 组合结果
-        if (patternMatchResult != null) {
-            return patternMatchResult + "---\n\n[AI详细分析]\n" + aiAnalysis;
-        }
-
-        return aiAnalysis;
-    }
-
+    /**
+     * Tombstone分析接口（Demo）
+     * 分析Tombstone文件，结合模式匹配和AI增强分析
+     *
+     * @param file Tombstone文件
+     * @return 分析结果
+     */
     @PostMapping("/demo/analyzeTombstone")
     public String analyzeTombstone(@RequestParam("file") MultipartFile file) {
         try {
-            TroubleEntity troubleEntity = simpleQuery(file);
+            TroubleEntity troubleEntity = query(file);
 
             // Ensure it's AArch64Tombstone type
             if (!(troubleEntity instanceof AArch64Tombstone)) {

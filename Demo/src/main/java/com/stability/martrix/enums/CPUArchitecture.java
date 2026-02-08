@@ -31,26 +31,4 @@ public enum CPUArchitecture {
     public String getDescription() { return description; }
     public int getBits() { return bits; }
     public int getYearIntroduced() { return yearIntroduced; }
-
-    // 判断是否为64位架构
-    public boolean is64Bit() {
-        return bits == 64;
-    }
-
-    // 判断是否为RISC架构
-    public boolean isRISC() {
-        return this == ARM || this == ARM64 ||
-                this == RISC_V || this == MIPS ||
-                this == SPARC || this == POWER;
-    }
-
-    // 判断是否为CISC架构
-    public boolean isCISC() {
-        return this == X86 || this == X86_64 || this == IA64;
-    }
-
-    // 获取架构年龄
-    public int getAge() {
-        return java.time.Year.now().getValue() - yearIntroduced;
-    }
 }

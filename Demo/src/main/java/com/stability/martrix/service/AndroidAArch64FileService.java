@@ -32,15 +32,6 @@ public class AndroidAArch64FileService implements FileService {
         this.resourceReaderService = null;
     }
 
-    private boolean checkABI(List<String> strings) {
-        for (String string : strings) {
-            if (string.contains("ABI:") && string.contains("arm64")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     public TroubleEntity parseFile(String filePath) {
         AArch64Tombstone tombstone = new AArch64Tombstone();
@@ -74,28 +65,7 @@ public class AndroidAArch64FileService implements FileService {
         
         return tombstone;
     }
-    
-    /**
-     * 从Spring Resource路径解析文件
-     * @param resourcePath 资源路径
-     * @return 解析后的ToubleEntity对象
-     */
-    public TroubleEntity parseResourceFile(String resourcePath) {
-        AArch64Tombstone tombstone = new AArch64Tombstone();
-        
-        // 1. 获取行列表
-        List<String> lines = readLinesFromResource(resourcePath);
-        if (lines == null || lines.isEmpty()) {
-            logger.info("无法从资源路径读取文件内容: " + resourcePath);
-            return tombstone;
-        }
-        
-        // 2. 解析行信息
-        parseLines(lines, tombstone);
-        
-        return tombstone;
-    }
-    
+
     /**
      * 检查文件是否存在
      */

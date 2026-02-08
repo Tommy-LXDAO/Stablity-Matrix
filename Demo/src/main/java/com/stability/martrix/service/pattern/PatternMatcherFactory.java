@@ -50,13 +50,4 @@ public class PatternMatcherFactory {
 
         return matcher.map(m -> m.match(tombstone)).orElse(null);
     }
-
-    /**
-     * Get all registered pattern matchers
-     *
-     * @return list of all pattern matchers
-     */
-    public List<SignalPatternMatcher> getAllMatchers() {
-        return patternMatchers;
-    }
 }

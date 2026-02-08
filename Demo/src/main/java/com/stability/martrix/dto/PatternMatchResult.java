@@ -36,12 +36,4 @@ public class PatternMatchResult {
      * Whether to draw a direct conclusion from this pattern match
      */
     private boolean directConclusion;
-
-    /**
-     * Get the user-facing description (alias for result for better readability)
-     * @return the analysis result
-     */
-    public String getDescription() {
-        return result;
-    }
 }

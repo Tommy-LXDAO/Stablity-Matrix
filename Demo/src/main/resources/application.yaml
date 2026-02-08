@@ -34,6 +34,13 @@ spring:
     async:
       request-timeout: 300s
 
+# 文件存储配置
+file:
+  storage:
+    base-path: ${FILE_STORAGE_BASE_PATH:/tmp/sessions}  # 会话文件存储根路径
+    session-folder-prefix: session_  # 会话文件夹前缀
+    cleanup-expired-hours: 48  # 清理过期会话文件的时间阈值（小时）
+
 # Chat Client 配置
 chat:
   client:

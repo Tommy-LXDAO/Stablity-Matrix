@@ -5,9 +5,9 @@ import lombok.Data;
 @Data
 public class TroubleEntity {
     // 进程号
-    private int pid;
+    private Integer pid;
     // 首要tid
-    private int firstTid;
+    private Integer firstTid;
     // 进程名
     private String processName;
     // 故障版本号

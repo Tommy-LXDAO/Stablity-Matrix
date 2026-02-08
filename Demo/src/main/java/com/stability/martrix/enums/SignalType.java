@@ -49,18 +49,4 @@ public enum SignalType {
     public String getSignalName() {
         return signalName;
     }
-
-    /**
-     * Get SignalType enum from signal number
-     * @param signalNumber the signal number
-     * @return SignalType enum or null if not found
-     */
-    public static SignalType fromSignalNumber(int signalNumber) {
-        for (SignalType type : values()) {
-            if (type.signalNumber == signalNumber) {
-                return type;
-            }
-        }
-        return null;
-    }
 }
