@@ -34,9 +34,14 @@ public class AIAnalysisResponse extends BaseResponse {
     private List<String> processLogs;
 
     /**
-     * AI分析结果
+     * AI分析结果（原始JSON字符串）
      */
     private String aiAnalysis;
+
+    /**
+     * AI崩溃分析结果（解析后的对象）
+     */
+    private CrashAnalysisResult crashAnalysisResult;
 
     public String getSessionId() {
         return sessionId;
@@ -91,6 +96,14 @@ public class AIAnalysisResponse extends BaseResponse {
 
     public void setAiAnalysis(String aiAnalysis) {
         this.aiAnalysis = aiAnalysis;
+    }
+
+    public CrashAnalysisResult getCrashAnalysisResult() {
+        return crashAnalysisResult;
+    }
+
+    public void setCrashAnalysisResult(CrashAnalysisResult crashAnalysisResult) {
+        this.crashAnalysisResult = crashAnalysisResult;
     }
 
     /**

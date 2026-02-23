@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.stability.martrix.constants.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stability.martrix.dto.AIAnalysisResponse;
+import com.stability.martrix.dto.CrashAnalysisResult;
 import com.stability.martrix.dto.CrashInfo;
 import com.stability.martrix.dto.FileParseResult;
 import com.stability.martrix.dto.PatternMatchResult;
@@ -183,8 +184,25 @@ public class AIFileAnalysisService {
                 logger.info("[sessionId={}] 开始AI分析...", sessionId);
                 aiAnalysis = analyzeCrashWithAI(sessionId, question, parsedQuestion,
                         crashInfo, tombstone, patternMatchResult);
-                logger.info("[sessionId={}] AI分析完成", sessionId);
+                logger.info("[sessionId={}] AI分析完成 aiAnalysis={}", sessionId, aiAnalysis);
             }
+
+            // 如果aiAnalysis不为null，则解析为对象，并设置给response
+            if (aiAnalysis != null && !aiAnalysis.trim().isEmpty()) {
+                try {
+                    // 去掉AI返回的 ```json 和 ``` 标记
+                    String jsonContent = aiAnalysis.trim()
+                            .replaceAll("^```json\\s*", "")
+                            .replaceAll("\\s*```$", "");
+                    CrashAnalysisResult crashAnalysisResult = objectMapper.readValue(
+                            jsonContent, CrashAnalysisResult.class);
+                    response.setCrashAnalysisResult(crashAnalysisResult);
+                    logger.info("[sessionId={}] AI分析结果解析成功", sessionId);
+                } catch (JsonProcessingException e) {
+                    logger.warn("[sessionId={}] AI分析结果JSON解析失败: {}", sessionId, e.getMessage());
+                }
+            }
+
 
             // 设置响应结果
             if (fileParseResult != null) {
