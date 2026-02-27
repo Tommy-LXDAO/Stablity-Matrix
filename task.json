@@ -1,0 +1,193 @@
+{
+  "projectName": "Stability Matrix",
+  "projectDescription": "Android崩溃分析平台 - 解析tombstone文件，使用AI进行故障分析",
+  "tasks": [
+    {
+      "id": 1,
+      "category": "config",
+      "description": "环境配置检查 - 验证Redis连接和API Key配置",
+      "steps": [
+        "检查Redis服务是否运行",
+        "验证application.yaml配置",
+        "检查必要的环境变量"
+      ],
+      "passes": false
+    },
+    {
+      "id": 2,
+      "category": "config",
+      "description": "应用启动验证 - 确保项目能够正常启动",
+      "steps": [
+        "执行 mvn clean install",
+        "启动Spring Boot应用",
+        "验证健康检查接口"
+      ],
+      "passes": false
+    },
+    {
+      "id": 3,
+      "category": "testing",
+      "description": "创建测试基础设施 - 创建测试基类和Mock配置",
+      "steps": [
+        "添加Mockito依赖",
+        "创建ServiceTestBase基类",
+        "创建测试数据辅助类"
+      ],
+      "passes": false
+    },
+    {
+      "id": 4,
+      "category": "testing",
+      "description": "FileService接口TDD - 为文件解析服务编写单元测试",
+      "steps": [
+        "为AndroidAArch64FileService编写测试",
+        "测试tombstone文件解析",
+        "测试寄存器信息解析"
+      ],
+      "passes": false
+    },
+    {
+      "id": 5,
+      "category": "testing",
+      "description": "ResourceReaderService接口TDD - 资源读取服务测试",
+      "steps": [
+        "测试ClassPathResource读取",
+        "测试文件不存在场景",
+        "测试字符编码处理"
+      ],
+      "passes": false
+    },
+    {
+      "id": 6,
+      "category": "testing",
+      "description": "PatternMatchService接口TDD - 模式匹配服务测试",
+      "steps": [
+        "测试SIGSEGV模式匹配",
+        "测试SIGABRT模式匹配",
+        "测试工厂类正确选择匹配器"
+      ],
+      "passes": false
+    },
+    {
+      "id": 7,
+      "category": "testing",
+      "description": "SessionService接口TDD - 会话管理服务测试",
+      "steps": [
+        "测试会话创建",
+        "测试Redis存储",
+        "测试会话过期处理"
+      ],
+      "passes": false
+    },
+    {
+      "id": 8,
+      "category": "testing",
+      "description": "ArchiveExtractionService接口TDD - 归档提取服务测试",
+      "steps": [
+        "测试TAR文件解压",
+        "测试ZIP文件解压",
+        "测试损坏文件处理"
+      ],
+      "passes": false
+    },
+    {
+      "id": 9,
+      "category": "testing",
+      "description": "AIFileAnalysisService接口TDD - AI文件分析服务测试",
+      "steps": [
+        "测试文件上传解析",
+        "测试AI请求构建",
+        "测试响应解析"
+      ],
+      "passes": false
+    },
+    {
+      "id": 10,
+      "category": "testing",
+      "description": "AITroubleAnalysisService接口TDD - AI故障分析服务测试",
+      "steps": [
+        "测试故障分析请求",
+        "测试故障类型识别",
+        "测试建议生成"
+      ],
+      "passes": false
+    },
+    {
+      "id": 11,
+      "category": "refactor",
+      "description": "重构SessionService为接口 - 提取会话服务接口",
+      "steps": [
+        "创建SessionService接口",
+        "创建RedisSessionServiceImpl实现",
+        "创建InMemorySessionServiceImpl实现（测试用）",
+        "更新Controller依赖注入"
+      ],
+      "passes": false
+    },
+    {
+      "id": 12,
+      "category": "refactor",
+      "description": "重构AIFileAnalysisService为接口 - 提取AI文件分析服务接口",
+      "steps": [
+        "创建AIFileAnalysisService接口",
+        "创建OpenAIFileAnalysisServiceImpl实现",
+        "创建MockAIFileAnalysisServiceImpl实现（测试用）"
+      ],
+      "passes": false
+    },
+    {
+      "id": 13,
+      "category": "refactor",
+      "description": "重构AITroubleAnalysisService为接口 - 提取AI故障分析服务接口",
+      "steps": [
+        "创建AITroubleAnalysisService接口",
+        "创建OpenAITroubleAnalysisServiceImpl实现",
+        "创建MockAITroubleAnalysisServiceImpl实现（测试用）"
+      ],
+      "passes": false
+    },
+    {
+      "id": 14,
+      "category": "refactor",
+      "description": "重构SessionFileStorageService为接口 - 提取会话文件存储服务接口",
+      "steps": [
+        "创建SessionFileStorageService接口",
+        "创建LocalSessionFileStorageServiceImpl实现",
+        "创建S3SessionFileStorageServiceImpl实现（可选）"
+      ],
+      "passes": false
+    },
+    {
+      "id": 15,
+      "category": "refactor",
+      "description": "重构ArchiveExtractionService为接口 - 提取归档提取服务接口",
+      "steps": [
+        "创建ArchiveExtractionService接口",
+        "创建CommonsCompressArchiveServiceImpl实现"
+      ],
+      "passes": false
+    },
+    {
+      "id": 16,
+      "category": "feature",
+      "description": "平台适配层设计 - 支持多平台文件解析",
+      "steps": [
+        "设计PlatformDetector接口",
+        "创建AndroidPlatformDetector实现",
+        "创建LinuxPlatformDetector实现（可选）"
+      ],
+      "passes": false
+    },
+    {
+      "id": 17,
+      "category": "integration",
+      "description": "端到端测试 - 完整业务流程测试",
+      "steps": [
+        "测试文件上传到分析完整流程",
+        "测试会话管理",
+        "测试AI分析响应"
+      ],
+      "passes": false
+    }
+  ]
+}

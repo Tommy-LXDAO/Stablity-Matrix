@@ -53,6 +53,10 @@ public class FileStorageProperties {
      * 获取会话文件夹完整路径
      */
     public String getSessionPath(String sessionId) {
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        if (isWindows) {
+            return "D:\\temp\\tombstone\\" + sessionFolderPrefix + sessionId;
+        }
         return basePath + "/" + sessionFolderPrefix + sessionId;
     }
 }

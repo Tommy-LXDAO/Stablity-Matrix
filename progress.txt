@@ -1,0 +1,73 @@
+# Stability Matrix - 项目进度记录
+
+## 2026-02-28 - 初始化
+
+### 本次变更
+- 创建了项目计划文件
+- 学习了Anthropic文章《Effective Harnesses for Long-Running Agents》
+- 分析了项目代码结构
+
+### 创建的文件
+1. `task.json` - 任务进度清单
+   - 共17个任务，分为5个类别
+   - config: 2个任务（环境配置、启动验证）
+   - testing: 8个任务（TDD测试）
+   - refactor: 6个任务（重构Service为接口）
+   - feature: 1个任务（平台适配层）
+   - integration: 1个任务（端到端测试）
+
+2. `architecture.md` - 项目架构文档
+   - 项目概述
+   - 技术栈
+   - 系统架构图
+   - API端点
+   - 数据模型
+   - 工作流程
+   - 测试策略
+
+3. `progress.txt` - 本文件，用于记录进度
+
+### 项目当前状态
+- 技术栈: Spring Boot 3.5.8 + Spring AI 1.1.1 + Redis
+- 已有部分Service为接口（FileService, ResourceReaderService, PatternMatchService）
+- 部分Service仍为Class，需要重构
+- 有基础测试，但不够完善
+- 配置依赖环境变量：NEWAPI_KEY, OPENAI_API_KEY等
+
+### 下一步计划
+1. 先完成阶段一：让项目能正确跑起来
+   - 检查Redis配置
+   - 设置必要的环境变量
+   - 验证应用启动
+
+2. 阶段二：建立TDD框架
+   - 创建测试基础设施
+   - 为每个Service编写测试
+
+3. 阶段三：重构Service为接口
+   - 将SessionService等重构为接口
+   - 创建平台特定的实现类
+   - 实现动态切换机制
+
+---
+## 历史记录格式
+
+### 日期格式
+## YYYY-MM-DD - 标题
+
+### 本次变更
+- 描述本次的修改内容
+
+### 创建的文件
+- 列出创建的文件
+
+### 修改的文件
+- 列出修改的文件
+
+### 项目当前状态
+- 描述项目当前状态
+
+### 下一步计划
+- 描述下一步的工作计划
+
+---
