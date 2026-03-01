@@ -1,6 +1,15 @@
 {
   "projectName": "Stability Matrix",
-  "projectDescription": "Android崩溃分析平台 - 解析tombstone文件，使用AI进行故障分析",
+  "projectDescription": "跨平台崩溃分析平台 - 解析Android tombstone和OpenHarmony崩溃日志，使用AI进行故障分析",
+  "serviceStatus": {
+    "interfaces": ["FileService", "ResourceReaderService"],
+    "classes": ["AIFileAnalysisService", "AITroubleAnalysisService", "AndroidAArch64FileService", "ArchiveExtractionService", "PatternMatchService", "SessionFileStorageService", "SessionService"]
+  },
+  "dependencyGraph": {
+    "AIFileAnalysisService": ["FileService", "SessionFileStorageService", "ArchiveExtractionService", "SessionService", "PatternMatchService"],
+    "AITroubleAnalysisService": ["ChatClient"],
+    "AndroidAArch64FileService": ["FileService"]
+  },
   "tasks": [
     {
       "id": 1,
@@ -9,185 +18,215 @@
       "steps": [
         "检查Redis服务是否运行",
         "验证application.yaml配置",
-        "检查必要的环境变量"
+        "检查必要的环境变量（NEWAPI_KEY或OPENAI_API_KEY）"
       ],
+      "dependencies": [],
       "passes": false
     },
     {
       "id": 2,
       "category": "config",
-      "description": "应用启动验证 - 确保项目能够正常启动",
+      "description": "应用启动验证 - 确保项目能够正常启动并关闭",
       "steps": [
-        "执行 mvn clean install",
+        "执行 mvn clean install -DskipTests",
         "启动Spring Boot应用",
-        "验证健康检查接口"
+        "验证健康检查接口（如有）",
+        "正常关闭应用"
       ],
+      "dependencies": [1],
       "passes": false
     },
     {
       "id": 3,
-      "category": "testing",
-      "description": "创建测试基础设施 - 创建测试基类和Mock配置",
+      "category": "refactor",
+      "description": "重构SessionService - 将class重构为interface+impl模式",
       "steps": [
-        "添加Mockito依赖",
-        "创建ServiceTestBase基类",
-        "创建测试数据辅助类"
+        "阅读现有SessionService.java，理解所有方法",
+        "创建SessionService接口，提取公共方法签名",
+        "将现有SessionService重命名为RedisSessionServiceImpl",
+        "让RedisSessionServiceImpl实现SessionService接口",
+        "更新所有依赖SessionService的类的import（如有必要）",
+        "验证应用仍能正常启动"
       ],
-      "passes": false
+      "dependencies": [2],
+      "notes": "AIFileAnalysisService依赖此服务，重构后无需修改调用方代码"
     },
     {
       "id": 4,
-      "category": "testing",
-      "description": "FileService接口TDD - 为文件解析服务编写单元测试",
+      "category": "refactor",
+      "description": "重构SessionFileStorageService - 将class重构为interface+impl模式",
       "steps": [
-        "为AndroidAArch64FileService编写测试",
-        "测试tombstone文件解析",
-        "测试寄存器信息解析"
+        "阅读现有SessionFileStorageService.java，理解所有方法",
+        "创建SessionFileStorageService接口",
+        "将现有实现重命名为LocalSessionFileStorageServiceImpl",
+        "更新依赖注入（Spring会自动装配）",
+        "验证应用仍能正常启动"
       ],
-      "passes": false
+      "dependencies": [2],
+      "notes": "AIFileAnalysisService依赖此服务"
     },
     {
       "id": 5,
-      "category": "testing",
-      "description": "ResourceReaderService接口TDD - 资源读取服务测试",
+      "category": "refactor",
+      "description": "重构ArchiveExtractionService - 将class重构为interface+impl模式",
       "steps": [
-        "测试ClassPathResource读取",
-        "测试文件不存在场景",
-        "测试字符编码处理"
+        "阅读现有ArchiveExtractionService.java，理解所有方法和静态方法",
+        "创建ArchiveExtractionService接口（注意：静态方法detectArchiveType需要特殊处理）",
+        "将现有实现重命名为CommonsCompressArchiveServiceImpl",
+        "考虑将detectArchiveType作为接口默认方法或工具类方法",
+        "验证应用仍能正常启动"
       ],
-      "passes": false
+      "dependencies": [2],
+      "notes": "AIFileAnalysisService依赖此服务，注意静态方法的处理"
     },
     {
       "id": 6,
-      "category": "testing",
-      "description": "PatternMatchService接口TDD - 模式匹配服务测试",
+      "category": "refactor",
+      "description": "重构PatternMatchService - 将class重构为interface+impl模式",
       "steps": [
-        "测试SIGSEGV模式匹配",
-        "测试SIGABRT模式匹配",
-        "测试工厂类正确选择匹配器"
+        "阅读现有PatternMatchService.java和pattern包下的匹配器",
+        "创建PatternMatchService接口",
+        "将现有实现重命名为PatternMatchServiceImpl",
+        "验证模式匹配功能正常（SIGSEGV/SIGABRT等）",
+        "验证应用仍能正常启动"
       ],
-      "passes": false
+      "dependencies": [2],
+      "notes": "AIFileAnalysisService依赖此服务，内部使用PatternMatcherFactory"
     },
     {
       "id": 7,
-      "category": "testing",
-      "description": "SessionService接口TDD - 会话管理服务测试",
+      "category": "refactor",
+      "description": "重构AIFileAnalysisService - 将class重构为interface+impl模式",
       "steps": [
-        "测试会话创建",
-        "测试Redis存储",
-        "测试会话过期处理"
+        "阅读现有AIFileAnalysisService.java，理解analyzeRequest核心流程",
+        "创建AIFileAnalysisService接口",
+        "将现有实现重命名为DefaultAIFileAnalysisServiceImpl",
+        "确保所有依赖的服务（FileService, SessionService等）已重构为接口",
+        "验证应用仍能正常启动"
       ],
-      "passes": false
+      "dependencies": [3, 4, 5, 6],
+      "notes": "这是核心服务，依赖多个其他服务，必须等其他服务重构完成"
     },
     {
       "id": 8,
-      "category": "testing",
-      "description": "ArchiveExtractionService接口TDD - 归档提取服务测试",
+      "category": "refactor",
+      "description": "重构AITroubleAnalysisService - 将class重构为interface+impl模式",
       "steps": [
-        "测试TAR文件解压",
-        "测试ZIP文件解压",
-        "测试损坏文件处理"
+        "阅读现有AITroubleAnalysisService.java",
+        "创建AITroubleAnalysisService接口",
+        "将现有实现重命名为DefaultAITroubleAnalysisServiceImpl",
+        "验证应用仍能正常启动"
       ],
-      "passes": false
+      "dependencies": [2],
+      "notes": "相对独立的服务，只依赖ChatClient"
     },
     {
       "id": 9,
-      "category": "testing",
-      "description": "AIFileAnalysisService接口TDD - AI文件分析服务测试",
+      "category": "feature",
+      "description": "平台检测接口设计 - 设计PlatformDetector用于识别Android/OpenHarmony",
       "steps": [
-        "测试文件上传解析",
-        "测试AI请求构建",
-        "测试响应解析"
+        "设计PlatformType枚举（ANDROID, OPENHARMONY, UNKNOWN）",
+        "创建PlatformDetector接口，定义detect(MultipartFile)方法",
+        "创建AndroidPlatformDetector实现（检测tombstone特征）",
+        "创建PlatformDetectorFactory工厂类",
+        "编写简单的测试验证检测逻辑"
       ],
-      "passes": false
+      "dependencies": [2],
+      "notes": "新增接口，不影响现有代码"
     },
     {
       "id": 10,
-      "category": "testing",
-      "description": "AITroubleAnalysisService接口TDD - AI故障分析服务测试",
+      "category": "feature",
+      "description": "OpenHarmony崩溃日志解析器 - 实现hilog/hfksu解析",
       "steps": [
-        "测试故障分析请求",
-        "测试故障类型识别",
-        "测试建议生成"
+        "研究OpenHarmony崩溃日志格式（参考OpenHarmony官方文档）",
+        "设计OpenHarmonyCrash实体类（参考AArch64Tombstone结构）",
+        "创建OpenHarmonyFileService实现FileService接口",
+        "实现parseFile方法解析OpenHarmony崩溃日志",
+        "提取关键信息：进程名、PID、崩溃原因、调用栈"
       ],
-      "passes": false
+      "dependencies": [9],
+      "notes": "实现FileService接口，与AndroidAArch64FileService并列"
     },
     {
       "id": 11,
-      "category": "refactor",
-      "description": "重构SessionService为接口 - 提取会话服务接口",
+      "category": "feature",
+      "description": "OpenHarmony平台检测器 - 识别OpenHarmony日志特征",
       "steps": [
-        "创建SessionService接口",
-        "创建RedisSessionServiceImpl实现",
-        "创建InMemorySessionServiceImpl实现（测试用）",
-        "更新Controller依赖注入"
+        "分析OpenHarmony hilog/hfksu日志特征",
+        "实现OpenHarmonyPlatformDetector",
+        "在PlatformDetectorFactory中注册",
+        "测试平台检测准确性"
       ],
-      "passes": false
+      "dependencies": [9, 10],
+      "notes": "依赖OpenHarmonyFileService的实现经验"
     },
     {
       "id": 12,
-      "category": "refactor",
-      "description": "重构AIFileAnalysisService为接口 - 提取AI文件分析服务接口",
+      "category": "feature",
+      "description": "统一崩溃实体 - 创建CrashInfo通用接口",
       "steps": [
-        "创建AIFileAnalysisService接口",
-        "创建OpenAIFileAnalysisServiceImpl实现",
-        "创建MockAIFileAnalysisServiceImpl实现（测试用）"
+        "设计CrashInfo通用接口（或抽象类）",
+        "让AArch64Tombstone实现CrashInfo接口",
+        "让OpenHarmonyCrash实现CrashInfo接口",
+        "更新AIFileAnalysisService使用CrashInfo而非具体类型",
+        "确保AI分析prompt能处理两种平台的信息"
       ],
-      "passes": false
+      "dependencies": [7, 10],
+      "notes": "需要AIFileAnalysisService已重构为接口，便于扩展"
     },
     {
       "id": 13,
-      "category": "refactor",
-      "description": "重构AITroubleAnalysisService为接口 - 提取AI故障分析服务接口",
+      "category": "feature",
+      "description": "API扩展 - 支持多平台崩溃分析",
       "steps": [
-        "创建AITroubleAnalysisService接口",
-        "创建OpenAITroubleAnalysisServiceImpl实现",
-        "创建MockAITroubleAnalysisServiceImpl实现（测试用）"
+        "扩展AnalysisController，添加platform参数（可选）",
+        "如果没有指定platform，使用PlatformDetector自动检测",
+        "根据平台类型选择对应的FileService实现",
+        "返回结果中包含平台类型信息",
+        "更新API文档"
       ],
-      "passes": false
+      "dependencies": [9, 10, 11, 12],
+      "notes": "整合所有平台相关功能"
     },
     {
       "id": 14,
-      "category": "refactor",
-      "description": "重构SessionFileStorageService为接口 - 提取会话文件存储服务接口",
+      "category": "feature",
+      "description": "添加OpenHarmony测试样本文件",
       "steps": [
-        "创建SessionFileStorageService接口",
-        "创建LocalSessionFileStorageServiceImpl实现",
-        "创建S3SessionFileStorageServiceImpl实现（可选）"
+        "收集或构造OpenHarmony崩溃日志样本",
+        "创建src/test/resources/samples/openharmony/目录",
+        "添加样本文件并编写说明文档",
+        "验证解析器能正确处理样本文件"
       ],
-      "passes": false
+      "dependencies": [10],
+      "notes": "用于开发和测试"
     },
     {
       "id": 15,
-      "category": "refactor",
-      "description": "重构ArchiveExtractionService为接口 - 提取归档提取服务接口",
+      "category": "integration",
+      "description": "Android端到端验证 - 完整业务流程测试",
       "steps": [
-        "创建ArchiveExtractionService接口",
-        "创建CommonsCompressArchiveServiceImpl实现"
+        "上传Android tombstone样本文件",
+        "验证平台检测为ANDROID",
+        "验证解析结果正确",
+        "验证AI分析响应格式正确"
       ],
-      "passes": false
+      "dependencies": [13],
+      "notes": "确保现有功能不受影响"
     },
     {
       "id": 16,
-      "category": "feature",
-      "description": "平台适配层设计 - 支持多平台文件解析",
-      "steps": [
-        "设计PlatformDetector接口",
-        "创建AndroidPlatformDetector实现",
-        "创建LinuxPlatformDetector实现（可选）"
-      ],
-      "passes": false
-    },
-    {
-      "id": 17,
       "category": "integration",
-      "description": "端到端测试 - 完整业务流程测试",
+      "description": "OpenHarmony端到端验证 - 完整业务流程测试",
       "steps": [
-        "测试文件上传到分析完整流程",
-        "测试会话管理",
-        "测试AI分析响应"
+        "上传OpenHarmony崩溃日志样本文件",
+        "验证平台检测为OPENHARMONY",
+        "验证解析结果正确",
+        "验证AI分析响应格式正确"
       ],
-      "passes": false
+      "dependencies": [13, 14],
+      "notes": "验证新平台功能"
     }
   ]
 }
