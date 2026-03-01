@@ -11,6 +11,7 @@ import com.stability.martrix.dto.PatternMatchResult;
 import com.stability.martrix.dto.SessionContext;
 import com.stability.martrix.entity.AArch64Tombstone;
 import com.stability.martrix.entity.TroubleEntity;
+import com.stability.martrix.service.parser.FileParserFactory;
 import com.stability.martrix.util.FileTypeDetector;
 import com.stability.martrix.util.ZipFileParser;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ public class AIFileAnalysisService {
 
     private static final Logger logger = LoggerFactory.getLogger(AIFileAnalysisService.class);
 
-    private final FileService fileService;
+    private final FileParserFactory fileParserFactory;
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SessionFileStorageService sessionFileStorageService;
@@ -48,13 +49,13 @@ public class AIFileAnalysisService {
     private final SessionService sessionService;
     private final PatternMatchService patternMatchService;
 
-    public AIFileAnalysisService(FileService fileService,
+    public AIFileAnalysisService(FileParserFactory fileParserFactory,
                                   ChatClient.Builder chatClientBuilder,
                                   SessionFileStorageService sessionFileStorageService,
                                   ArchiveExtractionService archiveExtractionService,
                                   SessionService sessionService,
                                   PatternMatchService patternMatchService) {
-        this.fileService = fileService;
+        this.fileParserFactory = fileParserFactory;
         this.chatClient = chatClientBuilder.build();
         this.sessionFileStorageService = sessionFileStorageService;
         this.archiveExtractionService = archiveExtractionService;
@@ -114,6 +115,7 @@ public class AIFileAnalysisService {
                 fileParseResult.setTombstone(tombstone);
                 fileParseResult.setSuccess(false);
             } else {
+                // 使用 FileParserFactory 实现多态解析，支持 Android、OpenHarmony 等多平台文件
                 fileParseResult = processFiles(sessionId, files, sessionContext);
                 hasTombstone = fileParseResult.hasTombstone();
                 tombstone = fileParseResult.getTombstone();
@@ -344,13 +346,13 @@ public class AIFileAnalysisService {
 
                 switch (fileType) {
                     case TXT:
-                        logger.info("[sessionId={}] 尝试将TXT文件解析为Tombstone...", sessionId);
-                        AArch64Tombstone parsedTombstone = parseTextFileAsPath(path);
-                        if (parsedTombstone != null && isValidTombstone(parsedTombstone)) {
+                        logger.info("[sessionId={}] 使用多平台解析器解析文件...", sessionId);
+                        TroubleEntity entity = fileParserFactory.parseFile(path);
+                        if (entity instanceof AArch64Tombstone parsedTombstone && isValidTombstone(parsedTombstone)) {
                             tombstone = parsedTombstone;
-                            logger.info("[sessionId={}] 成功解析Tombstone文件: {}", sessionId, fileName);
+                            logger.info("[sessionId={}] 成功解析文件: {}", sessionId, fileName);
                         } else {
-                            logger.debug("[sessionId={}] 文件不是有效的Tombstone格式: {}", sessionId, fileName);
+                            logger.debug("[sessionId={}] 文件不是有效的崩溃日志格式: {}", sessionId, fileName);
                         }
                         break;
 
@@ -590,41 +592,6 @@ public class AIFileAnalysisService {
     }
 
     /**
-     * 将文本文件解析为Tombstone
-     */
-    private AArch64Tombstone parseTextFileAsTombstone(MultipartFile file) {
-        try {
-            List<String> lines = new BufferedReader(new InputStreamReader(file.getInputStream()))
-                    .lines()
-                    .collect(Collectors.toList());
-
-            TroubleEntity entity = fileService.parseFile(lines);
-            if (entity instanceof AArch64Tombstone) {
-                return (AArch64Tombstone) entity;
-            }
-        } catch (Exception e) {
-            logger.error("解析文本文件为Tombstone失败", e);
-        }
-        return null;
-    }
-
-    /**
-     * 将文本文件解析为Tombstone（通过路径）
-     */
-    private AArch64Tombstone parseTextFileAsPath(Path filePath) {
-        try {
-            List<String> lines = Files.readAllLines(filePath);
-            TroubleEntity entity = fileService.parseFile(lines);
-            if (entity instanceof AArch64Tombstone) {
-                return (AArch64Tombstone) entity;
-            }
-        } catch (Exception e) {
-            logger.error("解析文本文件为Tombstone失败: " + filePath, e);
-        }
-        return null;
-    }
-
-    /**
      * 验证Tombstone是否有效
      */
     private boolean isValidTombstone(AArch64Tombstone tombstone) {
@@ -740,12 +707,12 @@ public class AIFileAnalysisService {
                     .lines()
                     .collect(Collectors.toList());
 
-            TroubleEntity entity = fileService.parseFile(lines);
+            TroubleEntity entity = fileParserFactory.parseLines(lines);
             if (entity instanceof AArch64Tombstone) {
                 return (AArch64Tombstone) entity;
             }
         } catch (Exception e) {
-            logger.error("解析ZIP条目为Tombstone失败: " + entry.getName(), e);
+            logger.error("解析ZIP条目为Tombstone失败: {}", entry.getName(), e);
         }
         return null;
     }
