@@ -167,8 +167,14 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
                 if (frame != null) {
                     submitterStackFrames.add(frame);
                 }
+            } else if (parsingCrashThread && line.startsWith("#") && line.contains(" at ") && !line.startsWith("Registers:")) {
+                // 解析崩溃线程高级语言堆栈帧
+                AArch64Tombstone.StackDumpInfo.StackFrame frame = parseHighLevelStackFrame(line);
+                if (frame != null) {
+                    stackFrames.add(frame);
+                }
             } else if (parsingCrashThread && line.startsWith("#") && line.contains("pc ") && !line.startsWith("Registers:")) {
-                // 解析native堆栈帧
+                // 解析崩溃线程native堆栈帧
                 AArch64Tombstone.StackDumpInfo.StackFrame frame = parseStackFrame(line);
                 if (frame != null) {
                     stackFrames.add(frame);
