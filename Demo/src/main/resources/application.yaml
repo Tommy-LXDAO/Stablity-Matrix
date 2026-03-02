@@ -45,3 +45,7 @@ file:
 chat:
   client:
     base-url: ${NEWAPI_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com}}  # 默认使用OpenAI的API地址
+
+# 文件解析器配置
+parser:
+  platform: ${PARSER_PLATFORM:android}  # 解析器平台类型: android, openharmony

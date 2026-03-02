@@ -56,7 +56,13 @@ public class AIFileAnalysisService {
                                   SessionService sessionService,
                                   PatternMatchService patternMatchService) {
         this.fileParserFactory = fileParserFactory;
-        this.chatClient = chatClientBuilder.build();
+        // 指定 API path 的方式：
+        // 方式1: 通过 base-url 配置（推荐，在 application.yaml 中配置）
+        // 方式2: 通过代码指定
+        this.chatClient = chatClientBuilder
+                // 例如指定特定的 API 端点
+                // .baseUrl("https://api.openai.com/v1")
+                .build();
         this.sessionFileStorageService = sessionFileStorageService;
         this.archiveExtractionService = archiveExtractionService;
         this.sessionService = sessionService;
@@ -467,11 +473,13 @@ public class AIFileAnalysisService {
 
                 请只返回清理后的问题，不要有其他说明。
                 """.formatted(question);
-            // TODO: （AI请忽略这里）需要评估chatClient对应模型的耗时，这里耗时不要太多
-            String response = chatClient.prompt()
+            // TODO: 这里需要过滤掉推理部分的结果，推理部分以<think>开头，</think>结尾
+            String rawResponse = chatClient.prompt()
                     .user(prompt)
                     .call()
                     .content();
+
+            String response = filterReasoning(rawResponse);
 
             if (response != null && !response.trim().isEmpty()) {
                 return response.trim();
@@ -518,10 +526,12 @@ public class AIFileAnalysisService {
                 请只返回JSON格式，不要有其他说明。
                 """.formatted(question);
 
-            String response = chatClient.prompt()
+            String rawResponse = chatClient.prompt()
                     .user(prompt)
                     .call()
                     .content();
+
+            String response = filterReasoning(rawResponse);
 
             if (response != null) {
                 // 解析JSON响应
@@ -589,6 +599,26 @@ public class AIFileAnalysisService {
         }
 
         return crashInfo;
+    }
+
+    /**
+     * 过滤掉AI返回结果中的推理部分
+     * 支持过滤 <thinking>、</thinking>、</think>、<thought>、</thought> 等标签
+     */
+    private String filterReasoning(String response) {
+        if (response == null || response.isEmpty()) {
+            return response;
+        }
+        // 过滤 <thinking>...</thinking> 标签
+        String filtered = response.replaceAll("(?i)<thinking>.*?</thinking>", "");
+        // TODO: 这一行没有过滤，还是存在<think>标签，请检查原因
+        // 过滤 <think>...</think> 标签
+        filtered = filtered.replaceAll("(?si)<think>.*?</think>", "");
+        // 过滤 <thought>...</thought> 标签
+        filtered = filtered.replaceAll("(?i)<thought>.*?</thought>", "");
+        // 过滤 <reasoning>...</reasoning> 标签
+        filtered = filtered.replaceAll("(?i)<reasoning>.*?</reasoning>", "");
+        return filtered.trim();
     }
 
     /**
@@ -801,11 +831,13 @@ public class AIFileAnalysisService {
                 请用专业但易懂的语言回答，返回纯JSON格式，不要包含其他说明文字。
                 """, jsonData);
 
-            String response = chatClient.prompt()
+            String rawResponse = chatClient.prompt()
                     .system("你是Android崩溃分析专家，请始终返回纯JSON格式的分析结果，不要包含任何其他文字说明。")
                     .user(prompt)
                     .call()
                     .content();
+
+            String response = filterReasoning(rawResponse);
 
             if (response != null && !response.trim().isEmpty()) {
                 return response.trim();

@@ -1,40 +1,81 @@
 package com.stability.martrix.service.parser;
 
+import com.stability.martrix.config.ParserProperties;
 import com.stability.martrix.entity.TroubleEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 文件解析器工厂
  *
- * 根据文件内容自动检测平台并选择合适的解析器
+ * 根据配置选择合适的解析器
  * 支持多平台文件解析（Android、OpenHarmony等）
+ *
+ * 解析器在项目启动时通过配置指定，无需运行时判断
  */
 @Component
 public class FileParserFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(FileParserFactory.class);
 
-    private final List<FileParserStrategy> parsers;
+    private final FileParserStrategy parser;
+    private final Map<String, FileParserStrategy> parserMap;
 
-    @Autowired
-    public FileParserFactory(List<FileParserStrategy> parsers) {
-        // 按优先级排序（数值越小优先级越高）
-        this.parsers = new ArrayList<>(parsers);
-        this.parsers.sort(Comparator.comparingInt(FileParserStrategy::getPriority));
-        logger.info("已加载 {} 个文件解析器: {}",
-            parsers.size(),
-            parsers.stream().map(FileParserStrategy::getPlatformName).toList()
+    /**
+     * 构造函数 - 根据配置选择解析器
+     *
+     * @param parsers 所有可用的解析器
+     * @param properties 解析器配置属性
+     */
+    public FileParserFactory(List<FileParserStrategy> parsers, ParserProperties properties) {
+        // 构建平台名称到解析器的映射
+        this.parserMap = parsers.stream()
+            .collect(Collectors.toMap(
+                p -> p.getPlatformName().toLowerCase(),
+                Function.identity(),
+                (existing, ignored) -> existing
+            ));
+
+        // 根据配置选择解析器
+        String configuredPlatform = properties.getPlatform().toLowerCase();
+        this.parser = selectParser(configuredPlatform);
+
+        logger.info("文件解析器初始化完成 - 配置平台: {}, 实际使用: {}, 可用解析器: {}",
+            configuredPlatform,
+            parser.getPlatformName(),
+            parserMap.keySet()
         );
+    }
+
+    /**
+     * 根据配置选择解析器
+     */
+    private FileParserStrategy selectParser(String platform) {
+        FileParserStrategy selected = parserMap.get(platform);
+
+        if (selected == null) {
+            logger.warn("未找到配置的解析器平台: {}, 使用默认解析器", platform);
+            // 尝试使用 android 作为默认
+            selected = parserMap.get("android");
+            if (selected == null && !parserMap.isEmpty()) {
+                selected = parserMap.values().iterator().next();
+            }
+        }
+
+        if (selected == null) {
+            throw new IllegalStateException("没有可用的文件解析器");
+        }
+
+        return selected;
     }
 
     /**
@@ -48,22 +89,15 @@ public class FileParserFactory {
             return null;
         }
 
-        Optional<FileParserStrategy> parser = findParser(lines);
-        if (parser.isEmpty()) {
-            logger.warn("未找到能解析该文件的解析器");
-            return null;
-        }
+        logger.debug("使用 {} 解析器处理文件", parser.getPlatformName());
 
-        FileParserStrategy strategy = parser.get();
-        logger.info("使用 {} 解析器处理文件", strategy.getPlatformName());
+        TroubleEntity entity = parser.parse(lines);
 
-        TroubleEntity entity = strategy.parse(lines);
-
-        if (entity != null && strategy.isValid(entity)) {
+        if (entity != null && parser.isValid(entity)) {
             return entity;
         }
 
-        logger.warn("{} 解析器解析结果无效", strategy.getPlatformName());
+        logger.warn("{} 解析器解析结果无效", parser.getPlatformName());
         return null;
     }
 
@@ -84,32 +118,12 @@ public class FileParserFactory {
     }
 
     /**
-     * 查找能解析该文件的解析器
+     * 获取当前使用的解析器
      *
-     * @param lines 文件内容的行列表
-     * @return 找到的解析器（按优先级返回第一个能解析的）
+     * @return 当前解析器
      */
-    private Optional<FileParserStrategy> findParser(List<String> lines) {
-        for (FileParserStrategy parser : parsers) {
-            try {
-                if (parser.canParse(lines)) {
-                    return Optional.of(parser);
-                }
-            } catch (Exception e) {
-                logger.warn("解析器 {} canParse 检查失败: {}",
-                    parser.getPlatformName(), e.getMessage());
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * 获取所有已注册的解析器
-     *
-     * @return 解析器列表
-     */
-    public List<FileParserStrategy> getAllParsers() {
-        return new ArrayList<>(parsers);
+    public FileParserStrategy getCurrentParser() {
+        return parser;
     }
 
     /**
@@ -119,8 +133,15 @@ public class FileParserFactory {
      * @return 对应的解析器，未找到返回 empty
      */
     public Optional<FileParserStrategy> getParserByPlatform(String platformName) {
-        return parsers.stream()
-            .filter(p -> p.getPlatformName().equalsIgnoreCase(platformName))
-            .findFirst();
+        return Optional.ofNullable(parserMap.get(platformName.toLowerCase()));
+    }
+
+    /**
+     * 获取所有已注册的解析器平台名称
+     *
+     * @return 平台名称列表
+     */
+    public List<String> getAvailablePlatforms() {
+        return List.copyOf(parserMap.keySet());
     }
 }
