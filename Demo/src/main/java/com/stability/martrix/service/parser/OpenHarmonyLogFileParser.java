@@ -227,12 +227,38 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
 
     private int getSignalNumber(String signalName) {
         switch (signalName) {
-            case "SIGSEGV": return 11;
-            case "SIGABRT": return 6;
-            case "SIGBUS": return 7;
-            case "SIGFPE": return 8;
-            case "SIGILL": return 4;
-            case "SIGPIPE": return 13;
+            // 标准POSIX信号
+            case "SIGHUP": return 1;    // 挂起
+            case "SIGINT": return 2;    // 中断
+            case "SIGQUIT": return 3;  // 退出
+            case "SIGILL": return 4;   // 非法指令
+            case "SIGTRAP": return 5;  // 陷阱
+            case "SIGABRT": return 6;  // 中止
+            case "SIGBUS": return 7;    // 总线错误
+            case "SIGFPE": return 8;    // 浮点异常
+            case "SIGKILL": return 9;  // 杀死
+            case "SIGUSR1": return 10;  // 用户自定义信号1
+            case "SIGSEGV": return 11; // 段错误
+            case "SIGUSR2": return 12;  // 用户自定义信号2
+            case "SIGPIPE": return 13;  // 管道破裂
+            case "SIGALRM": return 14;  // 闹钟
+            case "SIGTERM": return 15;  // 终止
+            case "SIGSTKFLT": return 16; // 协处理器栈错误
+            case "SIGCHLD": return 17;  // 子进程终止
+            case "SIGCONT": return 18;  // 继续执行
+            case "SIGSTOP": return 19;  // 停止
+            case "SIGTSTP": return 20;  // 终端停止信号
+            case "SIGTTIN": return 21;  // 后台读
+            case "SIGTTOU": return 22;  // 后台写
+            case "SIGURG": return 23;   // 紧急插座事件
+            case "SIGXCPU": return 24;  // CPU时间超限
+            case "SIGXFSZ": return 25;  // 文件大小超限
+            case "SIGVTALRM": return 26; // 虚拟闹钟
+            case "SIGPROF": return 27;   // profiling定时器届满
+            case "SIGWINCH": return 28; // 窗口大小改变
+            case "SIGIO": return 29;    // I/O现在可能
+            case "SIGPWR": return 30;   // 电源失效
+            case "SIGSYS": return 31;   // 非法系统调用
             default: return 0;
         }
     }
