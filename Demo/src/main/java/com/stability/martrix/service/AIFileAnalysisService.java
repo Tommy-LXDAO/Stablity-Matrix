@@ -11,6 +11,7 @@ import com.stability.martrix.dto.PatternMatchResult;
 import com.stability.martrix.dto.SessionContext;
 import com.stability.martrix.entity.AArch64Tombstone;
 import com.stability.martrix.entity.TroubleEntity;
+import com.stability.martrix.service.parser.FileParserFactory;
 import com.stability.martrix.util.FileTypeDetector;
 import com.stability.martrix.util.ZipFileParser;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ public class AIFileAnalysisService {
 
     private static final Logger logger = LoggerFactory.getLogger(AIFileAnalysisService.class);
 
-    private final FileService fileService;
+    private final FileParserFactory fileParserFactory;
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SessionFileStorageService sessionFileStorageService;
@@ -48,14 +49,20 @@ public class AIFileAnalysisService {
     private final SessionService sessionService;
     private final PatternMatchService patternMatchService;
 
-    public AIFileAnalysisService(FileService fileService,
+    public AIFileAnalysisService(FileParserFactory fileParserFactory,
                                   ChatClient.Builder chatClientBuilder,
                                   SessionFileStorageService sessionFileStorageService,
                                   ArchiveExtractionService archiveExtractionService,
                                   SessionService sessionService,
                                   PatternMatchService patternMatchService) {
-        this.fileService = fileService;
-        this.chatClient = chatClientBuilder.build();
+        this.fileParserFactory = fileParserFactory;
+        // 指定 API path 的方式：
+        // 方式1: 通过 base-url 配置（推荐，在 application.yaml 中配置）
+        // 方式2: 通过代码指定
+        this.chatClient = chatClientBuilder
+                // 例如指定特定的 API 端点
+                // .baseUrl("https://api.openai.com/v1")
+                .build();
         this.sessionFileStorageService = sessionFileStorageService;
         this.archiveExtractionService = archiveExtractionService;
         this.sessionService = sessionService;
@@ -114,6 +121,7 @@ public class AIFileAnalysisService {
                 fileParseResult.setTombstone(tombstone);
                 fileParseResult.setSuccess(false);
             } else {
+                // 使用 FileParserFactory 实现多态解析，支持 Android、OpenHarmony 等多平台文件
                 fileParseResult = processFiles(sessionId, files, sessionContext);
                 hasTombstone = fileParseResult.hasTombstone();
                 tombstone = fileParseResult.getTombstone();
@@ -344,13 +352,13 @@ public class AIFileAnalysisService {
 
                 switch (fileType) {
                     case TXT:
-                        logger.info("[sessionId={}] 尝试将TXT文件解析为Tombstone...", sessionId);
-                        AArch64Tombstone parsedTombstone = parseTextFileAsPath(path);
-                        if (parsedTombstone != null && isValidTombstone(parsedTombstone)) {
+                        logger.info("[sessionId={}] 使用多平台解析器解析文件...", sessionId);
+                        TroubleEntity entity = fileParserFactory.parseFile(path);
+                        if (entity instanceof AArch64Tombstone parsedTombstone && isValidTombstone(parsedTombstone)) {
                             tombstone = parsedTombstone;
-                            logger.info("[sessionId={}] 成功解析Tombstone文件: {}", sessionId, fileName);
+                            logger.info("[sessionId={}] 成功解析文件: {}", sessionId, fileName);
                         } else {
-                            logger.debug("[sessionId={}] 文件不是有效的Tombstone格式: {}", sessionId, fileName);
+                            logger.debug("[sessionId={}] 文件不是有效的崩溃日志格式: {}", sessionId, fileName);
                         }
                         break;
 
@@ -465,11 +473,13 @@ public class AIFileAnalysisService {
 
                 请只返回清理后的问题，不要有其他说明。
                 """.formatted(question);
-            // TODO: （AI请忽略这里）需要评估chatClient对应模型的耗时，这里耗时不要太多
-            String response = chatClient.prompt()
+            // TODO: 这里需要过滤掉推理部分的结果，推理部分以<think>开头，</think>结尾
+            String rawResponse = chatClient.prompt()
                     .user(prompt)
                     .call()
                     .content();
+
+            String response = filterReasoning(rawResponse);
 
             if (response != null && !response.trim().isEmpty()) {
                 return response.trim();
@@ -516,10 +526,12 @@ public class AIFileAnalysisService {
                 请只返回JSON格式，不要有其他说明。
                 """.formatted(question);
 
-            String response = chatClient.prompt()
+            String rawResponse = chatClient.prompt()
                     .user(prompt)
                     .call()
                     .content();
+
+            String response = filterReasoning(rawResponse);
 
             if (response != null) {
                 // 解析JSON响应
@@ -590,38 +602,23 @@ public class AIFileAnalysisService {
     }
 
     /**
-     * 将文本文件解析为Tombstone
+     * 过滤掉AI返回结果中的推理部分
+     * 支持过滤 <thinking>、</thinking>、</think>、<thought>、</thought> 等标签
      */
-    private AArch64Tombstone parseTextFileAsTombstone(MultipartFile file) {
-        try {
-            List<String> lines = new BufferedReader(new InputStreamReader(file.getInputStream()))
-                    .lines()
-                    .collect(Collectors.toList());
-
-            TroubleEntity entity = fileService.parseFile(lines);
-            if (entity instanceof AArch64Tombstone) {
-                return (AArch64Tombstone) entity;
-            }
-        } catch (Exception e) {
-            logger.error("解析文本文件为Tombstone失败", e);
+    private String filterReasoning(String response) {
+        if (response == null || response.isEmpty()) {
+            return response;
         }
-        return null;
-    }
-
-    /**
-     * 将文本文件解析为Tombstone（通过路径）
-     */
-    private AArch64Tombstone parseTextFileAsPath(Path filePath) {
-        try {
-            List<String> lines = Files.readAllLines(filePath);
-            TroubleEntity entity = fileService.parseFile(lines);
-            if (entity instanceof AArch64Tombstone) {
-                return (AArch64Tombstone) entity;
-            }
-        } catch (Exception e) {
-            logger.error("解析文本文件为Tombstone失败: " + filePath, e);
-        }
-        return null;
+        // 过滤 <thinking>...</thinking> 标签
+        String filtered = response.replaceAll("(?i)<thinking>.*?</thinking>", "");
+        // TODO: 这一行没有过滤，还是存在<think>标签，请检查原因
+        // 过滤 <think>...</think> 标签
+        filtered = filtered.replaceAll("(?si)<think>.*?</think>", "");
+        // 过滤 <thought>...</thought> 标签
+        filtered = filtered.replaceAll("(?i)<thought>.*?</thought>", "");
+        // 过滤 <reasoning>...</reasoning> 标签
+        filtered = filtered.replaceAll("(?i)<reasoning>.*?</reasoning>", "");
+        return filtered.trim();
     }
 
     /**
@@ -740,12 +737,12 @@ public class AIFileAnalysisService {
                     .lines()
                     .collect(Collectors.toList());
 
-            TroubleEntity entity = fileService.parseFile(lines);
+            TroubleEntity entity = fileParserFactory.parseLines(lines);
             if (entity instanceof AArch64Tombstone) {
                 return (AArch64Tombstone) entity;
             }
         } catch (Exception e) {
-            logger.error("解析ZIP条目为Tombstone失败: " + entry.getName(), e);
+            logger.error("解析ZIP条目为Tombstone失败: {}", entry.getName(), e);
         }
         return null;
     }
@@ -834,11 +831,13 @@ public class AIFileAnalysisService {
                 请用专业但易懂的语言回答，返回纯JSON格式，不要包含其他说明文字。
                 """, jsonData);
 
-            String response = chatClient.prompt()
+            String rawResponse = chatClient.prompt()
                     .system("你是Android崩溃分析专家，请始终返回纯JSON格式的分析结果，不要包含任何其他文字说明。")
                     .user(prompt)
                     .call()
                     .content();
+
+            String response = filterReasoning(rawResponse);
 
             if (response != null && !response.trim().isEmpty()) {
                 return response.trim();
