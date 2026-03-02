@@ -89,8 +89,7 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
         boolean inRegisters = false;
         boolean inStackTrace = false;
         boolean inMaps = false;
-        boolean inFaultThread = false;
-        boolean parsingCrashThread = false;  // 是否正在解析崩溃线程的堆栈
+        boolean inFaultThread = false;  // 是否正在解析崩溃线程的堆栈
         boolean parsingSubmitterThread = false;  // 是否正在解析父线程（Submitter）的堆栈
 
         String threadName = null;
@@ -127,19 +126,18 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
                 parseSignal(line, tombstone);
             } else if (line.startsWith("Fault thread info:") || line.startsWith("FaultThreadInfo:")) {
                 inFaultThread = true;
-                parsingCrashThread = false;  // 重置状态
             } else if (line.startsWith("Tid:") && inFaultThread) {
                 Matcher m = FAULT_THREAD_PATTERN.matcher(line);
                 if (m.find()) {
                     tid = Integer.parseInt(m.group(1));
                     threadName = m.group(2);
                     // 第一次遇到Tid时设置为崩溃线程，后续遇到则说明是其他线程
-                    if (!parsingCrashThread) {
-                        parsingCrashThread = true;
+                    if (!inFaultThread) {
+                        inFaultThread = true;
                         tombstone.setFirstTid(tid);
                     } else {
                         // 再次遇到Tid，说明崩溃线程解析完成
-                        parsingCrashThread = false;
+                        inFaultThread = false;
                         // 也要将父线程的解析流程结束
                         parsingSubmitterThread = false;
                     }
@@ -147,8 +145,8 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
             } else if (line.contains("====SubmitterStacktrace====")) {
                 // 遇到父线程标记，开始解析父线程堆栈
                 parsingSubmitterThread = true;
-                // 这里也需要将猪线程的解析置为false
-                parsingCrashThread = false;
+                // 这里也需要将崩溃线程的解析置为false
+                inFaultThread = false;
             } else if (parsingSubmitterThread && line.startsWith("Tid:")) {
                 // 解析父线程的Tid
                 Matcher m = TID_PATTERN.matcher(line);
@@ -167,13 +165,13 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
                 if (frame != null) {
                     submitterStackFrames.add(frame);
                 }
-            } else if (parsingCrashThread && line.startsWith("#") && line.contains(" at ") && !line.startsWith("Registers:")) {
+            } else if (inFaultThread && line.startsWith("#") && line.contains(" at ") && !line.startsWith("Registers:")) {
                 // 解析崩溃线程高级语言堆栈帧
                 AArch64Tombstone.StackDumpInfo.StackFrame frame = parseHighLevelStackFrame(line);
                 if (frame != null) {
                     stackFrames.add(frame);
                 }
-            } else if (parsingCrashThread && line.startsWith("#") && line.contains("pc ") && !line.startsWith("Registers:")) {
+            } else if (inFaultThread && line.startsWith("#") && line.contains("pc ") && !line.startsWith("Registers:")) {
                 // 解析崩溃线程native堆栈帧
                 AArch64Tombstone.StackDumpInfo.StackFrame frame = parseStackFrame(line);
                 if (frame != null) {
