@@ -407,7 +407,7 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
                 offset,
                 symbol,
                 library,
-                AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.ABSOLUTE,
+                AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.OFFSET,
                 address,
                 index,
                 buildId
