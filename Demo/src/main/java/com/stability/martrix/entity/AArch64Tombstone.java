@@ -12,6 +12,7 @@ import java.util.List;
 public class AArch64Tombstone extends TroubleEntity {
     private CPUArchitecture cpuArchitecture;
     private StackDumpInfo stackDumpInfo; // 栈信息
+    private StackDumpInfo submitterStackDumpInfo; // 父线程（Submitter）栈信息
     private SignalInfo signalInfo; // 信号信息
     private List<FdInfo> fdInfo; // fd 信息
     private List<MapsInfo> mapsInfoList; // maps 信息

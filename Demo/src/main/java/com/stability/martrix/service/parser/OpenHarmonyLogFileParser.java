@@ -83,15 +83,19 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
 
         Map<String, String> registers = new HashMap<>();
         List<AArch64Tombstone.StackDumpInfo.StackFrame> stackFrames = new ArrayList<>();
+        List<AArch64Tombstone.StackDumpInfo.StackFrame> submitterStackFrames = new ArrayList<>();  // 父线程堆栈
         List<AArch64Tombstone.MapsInfo> mapsList = new ArrayList<>();
 
         boolean inRegisters = false;
         boolean inStackTrace = false;
         boolean inMaps = false;
         boolean inFaultThread = false;
+        boolean parsingCrashThread = false;  // 是否正在解析崩溃线程的堆栈
+        boolean parsingSubmitterThread = false;  // 是否正在解析父线程（Submitter）的堆栈
 
         String threadName = null;
         Integer tid = null;
+        Integer submitterTid = null;  // 父线程的TID
 
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i).trim();
@@ -123,20 +127,47 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
                 parseSignal(line, tombstone);
             } else if (line.startsWith("Fault thread info:") || line.startsWith("FaultThreadInfo:")) {
                 inFaultThread = true;
+                parsingCrashThread = false;  // 重置状态
             } else if (line.startsWith("Tid:") && inFaultThread) {
                 Matcher m = FAULT_THREAD_PATTERN.matcher(line);
                 if (m.find()) {
                     tid = Integer.parseInt(m.group(1));
                     threadName = m.group(2);
-                    tombstone.setFirstTid(tid);
+                    // 第一次遇到Tid时设置为崩溃线程，后续遇到则说明是其他线程
+                    if (!parsingCrashThread) {
+                        parsingCrashThread = true;
+                        tombstone.setFirstTid(tid);
+                    } else {
+                        // 再次遇到Tid，说明崩溃线程解析完成
+                        parsingCrashThread = false;
+                        // 也要将父线程的解析流程结束
+                        parsingSubmitterThread = false;
+                    }
                 }
-            } else if (line.startsWith("#") && line.contains(" at ") && !line.startsWith("Registers:")) {
-                // 解析高级语言堆栈帧（如 TypeScript/ArkTS）：#07 at anonymous (xxx.ts:41:15) 或 #07 at d94 (xxx.ts:55:10)
+            } else if (line.contains("====SubmitterStacktrace====")) {
+                // 遇到父线程标记，开始解析父线程堆栈
+                parsingSubmitterThread = true;
+                // 这里也需要将猪线程的解析置为false
+                parsingCrashThread = false;
+            } else if (parsingSubmitterThread && line.startsWith("Tid:")) {
+                // 解析父线程的Tid
+                Matcher m = TID_PATTERN.matcher(line);
+                if (m.find()) {
+                    submitterTid = Integer.parseInt(m.group(1));
+                }
+            } else if (parsingSubmitterThread && line.startsWith("#") && line.contains(" at ") && !line.startsWith("Registers:")) {
+                // 解析父线程高级语言堆栈帧
                 AArch64Tombstone.StackDumpInfo.StackFrame frame = parseHighLevelStackFrame(line);
                 if (frame != null) {
-                    stackFrames.add(frame);
+                    submitterStackFrames.add(frame);
                 }
-            } else if (line.startsWith("#") && line.contains("pc ") && !line.startsWith("Registers:")) {
+            } else if (parsingSubmitterThread && line.startsWith("#") && line.contains("pc ") && !line.startsWith("Registers:")) {
+                // 解析父线程native堆栈帧
+                AArch64Tombstone.StackDumpInfo.StackFrame frame = parseStackFrame(line);
+                if (frame != null) {
+                    submitterStackFrames.add(frame);
+                }
+            } else if (parsingCrashThread && line.startsWith("#") && line.contains("pc ") && !line.startsWith("Registers:")) {
                 // 解析native堆栈帧
                 AArch64Tombstone.StackDumpInfo.StackFrame frame = parseStackFrame(line);
                 if (frame != null) {
@@ -152,7 +183,8 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
                 while (m.find()) {
                     registers.put(m.group(1), m.group(2));
                 }
-                if (line.startsWith("cpsr:") || (registers.size() >= 11 && !line.contains(":"))) {
+                // 寄存器解析结束条件：遇到 pstate (ARM64) 结尾
+                if (line.contains("pstate:")) {
                     inRegisters = false;
                 }
             } else if (line.startsWith("Maps:")) {
@@ -175,6 +207,13 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
             AArch64Tombstone.StackDumpInfo stackDumpInfo = new AArch64Tombstone.StackDumpInfo();
             stackDumpInfo.setStackFrames(stackFrames);
             tombstone.setStackDumpInfo(stackDumpInfo);
+        }
+
+        // 设置父线程（Submitter）堆栈信息
+        if (!submitterStackFrames.isEmpty()) {
+            AArch64Tombstone.StackDumpInfo submitterStackDumpInfo = new AArch64Tombstone.StackDumpInfo();
+            submitterStackDumpInfo.setStackFrames(submitterStackFrames);
+            tombstone.setSubmitterStackDumpInfo(submitterStackDumpInfo);
         }
 
         // 设置Maps信息
@@ -358,13 +397,13 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
         return null;
     }
 
-    private AArch64RegisterDumpInfo convertRegisters(Map<String, String> arm32Registers) {
+    private AArch64RegisterDumpInfo convertRegisters(Map<String, String> registers) {
         AArch64RegisterDumpInfo info = new AArch64RegisterDumpInfo();
 
-        // ARM32 r0-r10 对应 ARM64 x0-x10
-        for (int i = 0; i <= 10; i++) {
-            String regName = "r" + i;
-            String value = arm32Registers.get(regName);
+        // ARM64 x0-x29 直接映射
+        for (int i = 0; i <= 29; i++) {
+            String regName = "x" + i;
+            String value = registers.get(regName);
             if (value != null) {
                 try {
                     long val = Long.parseLong(value, 16);
@@ -380,6 +419,25 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
                         case 8: info.setX8(val); break;
                         case 9: info.setX9(val); break;
                         case 10: info.setX10(val); break;
+                        case 11: info.setX11(val); break;
+                        case 12: info.setX12(val); break;
+                        case 13: info.setX13(val); break;
+                        case 14: info.setX14(val); break;
+                        case 15: info.setX15(val); break;
+                        case 16: info.setX16(val); break;
+                        case 17: info.setX17(val); break;
+                        case 18: info.setX18(val); break;
+                        case 19: info.setX19(val); break;
+                        case 20: info.setX20(val); break;
+                        case 21: info.setX21(val); break;
+                        case 22: info.setX22(val); break;
+                        case 23: info.setX23(val); break;
+                        case 24: info.setX24(val); break;
+                        case 25: info.setX25(val); break;
+                        case 26: info.setX26(val); break;
+                        case 27: info.setX27(val); break;
+                        case 28: info.setX28(val); break;
+                        case 29: info.setX29(val); break;
                     }
                 } catch (NumberFormatException e) {
                     // ignore
@@ -387,28 +445,8 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
             }
         }
 
-        // ARM32 fp (r11) -> x29
-        String fpValue = arm32Registers.get("fp");
-        if (fpValue != null) {
-            try {
-                info.setX29(Long.parseLong(fpValue, 16));
-            } catch (NumberFormatException e) {
-                // ignore
-            }
-        }
-
-        // ARM32 ip (r12) -> x16
-        String ipValue = arm32Registers.get("ip");
-        if (ipValue != null) {
-            try {
-                info.setX16(Long.parseLong(ipValue, 16));
-            } catch (NumberFormatException e) {
-                // ignore
-            }
-        }
-
-        // ARM32 sp -> sp
-        String spValue = arm32Registers.get("sp");
+        // ARM64 sp
+        String spValue = registers.get("sp");
         if (spValue != null) {
             try {
                 info.setSp(Long.parseLong(spValue, 16));
@@ -417,18 +455,8 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
             }
         }
 
-        // ARM32 lr -> x30
-        String lrValue = arm32Registers.get("lr");
-        if (lrValue != null) {
-            try {
-                info.setX30(Long.parseLong(lrValue, 16));
-            } catch (NumberFormatException e) {
-                // ignore
-            }
-        }
-
-        // ARM32 pc -> pc
-        String pcValue = arm32Registers.get("pc");
+        // ARM64 pc
+        String pcValue = registers.get("pc");
         if (pcValue != null) {
             try {
                 info.setPc(Long.parseLong(pcValue, 16));
