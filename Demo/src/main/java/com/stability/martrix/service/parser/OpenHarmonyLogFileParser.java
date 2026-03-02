@@ -67,7 +67,6 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
         if (lines == null || lines.isEmpty()) {
             return null;
         }
-
         // TODO: 实现 OpenHarmony 日志解析逻辑
         // 需要根据 OpenHarmony 的实际日志格式来解析
         logger.info("OpenHarmony 日志解析功能待实现");
