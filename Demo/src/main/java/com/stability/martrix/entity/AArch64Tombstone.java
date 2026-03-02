@@ -32,8 +32,9 @@ public class AArch64Tombstone extends TroubleEntity {
             private Long offsetFromSymbolStart;
             private String buildId;
             public static enum AddressType {
-                ABSOLUTE,
-                OFFSET
+                ABSOLUTE,    // 绝对地址（native）
+                OFFSET,      // 相对偏移（native）
+                HIGH_LEVEL   // 高级语言（如TypeScript、ArkTS等）
             }
 
             public StackFrame(Long offsetFromSymbolStart, String symbol, String mapsInfo, AddressType addressType, Long address, int index, String buildId) {

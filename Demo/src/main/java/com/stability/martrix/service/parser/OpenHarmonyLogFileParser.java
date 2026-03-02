@@ -130,8 +130,14 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
                     threadName = m.group(2);
                     tombstone.setFirstTid(tid);
                 }
+            } else if (line.startsWith("#") && line.contains(" at ") && !line.startsWith("Registers:")) {
+                // 解析高级语言堆栈帧（如 TypeScript/ArkTS）：#07 at anonymous (xxx.ts:41:15) 或 #07 at d94 (xxx.ts:55:10)
+                AArch64Tombstone.StackDumpInfo.StackFrame frame = parseHighLevelStackFrame(line);
+                if (frame != null) {
+                    stackFrames.add(frame);
+                }
             } else if (line.startsWith("#") && line.contains("pc ") && !line.startsWith("Registers:")) {
-                // 解析堆栈帧
+                // 解析native堆栈帧
                 AArch64Tombstone.StackDumpInfo.StackFrame frame = parseStackFrame(line);
                 if (frame != null) {
                     stackFrames.add(frame);
@@ -261,6 +267,49 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
             case "SIGSYS": return 31;   // 非法系统调用
             default: return 0;
         }
+    }
+
+    /**
+     * 解析高级语言堆栈帧（如 TypeScript/ArkTS）
+     * 格式: #07 at anonymous (xxx.ts:41:15) 或 #07 at d94 (xxx.ts:55:10)
+     */
+    private AArch64Tombstone.StackDumpInfo.StackFrame parseHighLevelStackFrame(String line) {
+        // 格式: #07 at symbol (file:line:col) 或 #07 at address (file:line:col)
+        // 示例: #00 at hello (index.ets:24:9)
+        //       #01 at foo (index.ets:10:5)
+        Pattern pattern = Pattern.compile("#(\\d+)\\s+at\\s+(\\S+)\\s*\\(([^)]+):(\\d+):(\\d+)\\)");
+        Matcher m = pattern.matcher(line);
+        if (m.find()) {
+            int index = Integer.parseInt(m.group(1));
+            String symbol = m.group(2);
+            String fileName = m.group(3);
+            String lineNum = m.group(4);
+            String colNum = m.group(5);
+
+            // mapsInfo 格式为 "filename:line:col"
+            String mapsInfo = fileName + ":" + lineNum + ":" + colNum;
+
+            // 尝试解析symbol为地址
+            Long address = null;
+            try {
+                address = Long.parseLong(symbol, 16);
+            } catch (NumberFormatException e) {
+                // symbol 不是十六进制地址，保持为null
+            }
+
+            // addressType 为 HIGH_LEVEL
+            AArch64Tombstone.StackDumpInfo.StackFrame frame = new AArch64Tombstone.StackDumpInfo.StackFrame(
+                null,  // offsetFromSymbolStart - 高级语言没有偏移
+                symbol,
+                mapsInfo,
+                AArch64Tombstone.StackDumpInfo.StackFrame.AddressType.HIGH_LEVEL,
+                address,
+                index,
+                null  // buildId - 高级语言没有buildId
+            );
+            return frame;
+        }
+        return null;
     }
 
     private AArch64Tombstone.StackDumpInfo.StackFrame parseStackFrame(String line) {
