@@ -355,24 +355,42 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
 
     private AArch64Tombstone.StackDumpInfo.StackFrame parseStackFrame(String line) {
         // 格式: #00 pc 000ef8d4 /system/lib/ld-musl-arm.so.1(__isoc99_vfwscanf+52)(acbcd8a38a05aef9b405c54d21ad6ad5)
-        Pattern pattern = Pattern.compile("#(\\d+)\\s+pc\\s+([0-9a-fA-F]+)\\s+(\\S+)\\s*(?:\\(([^)]*)\\))?(?:\\(([^)]*)\\))?");
-        Matcher m = pattern.matcher(line);
-        if (m.find()) {
-            int index = Integer.parseInt(m.group(1));
-            String addressStr = m.group(2);
-            String library = m.group(3);
-            String symbolInfo = m.group(4);
-            String buildId = m.group(5);
+        // 解析 index, address, library, symbol, offset, buildId
 
-            Long address = null;
-            try {
-                address = Long.parseLong(addressStr, 16);
-            } catch (NumberFormatException e) {
-                // ignore
-            }
+        // 先提取 index 和 address
+        Pattern basicPattern = Pattern.compile("#(\\d+)\\s+pc\\s+([0-9a-fA-F]+)");
+        Matcher basicMatcher = basicPattern.matcher(line);
+        if (!basicMatcher.find()) {
+            return null;
+        }
 
-            String symbol = null;
-            Long offset = null;
+        int index = Integer.parseInt(basicMatcher.group(1));
+        String addressStr = basicMatcher.group(2);
+
+        Long address = null;
+        try {
+            address = Long.parseLong(addressStr, 16);
+        } catch (NumberFormatException e) {
+            // ignore
+        }
+
+        // 提取 library、symbol 和 buildId
+        // 格式: /path/to/lib.so(symbol+offset)(buildId)
+        // 或者: /path/to/lib.so+offset
+        String library = null;
+        String symbol = null;
+        Long offset = null;
+        String buildId = null;
+
+        // 查找 (symbol+offset)(buildId) 部分
+        Pattern symbolPattern = Pattern.compile("(/.+?)(?:\\(([^)]+)\\))?(?:\\(([^)]+)\\))?$");
+        Matcher symbolMatcher = symbolPattern.matcher(line.substring(basicMatcher.end()));
+        if (symbolMatcher.find()) {
+            library = symbolMatcher.group(1);
+            String symbolInfo = symbolMatcher.group(2);
+            buildId = symbolMatcher.group(3);
+
+            // 解析 symbol 和 offset
             if (symbolInfo != null && symbolInfo.contains("+")) {
                 String[] parts = symbolInfo.split("\\+");
                 symbol = parts[0];
@@ -396,6 +414,7 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
             );
             return frame;
         }
+
         return null;
     }
 
