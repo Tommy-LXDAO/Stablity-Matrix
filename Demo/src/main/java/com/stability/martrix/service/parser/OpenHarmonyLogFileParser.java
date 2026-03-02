@@ -124,9 +124,7 @@ public class OpenHarmonyLogFileParser implements FileParserStrategy {
             } else if (line.startsWith("Reason:")) {
                 // 解析Signal信息
                 parseSignal(line, tombstone);
-            } else if (line.startsWith("Fault thread info:") || line.startsWith("FaultThreadInfo:")) {
-                inFaultThread = true;
-            } else if (line.startsWith("Tid:") && inFaultThread) {
+            } else if (line.startsWith("Tid:")) {
                 Matcher m = FAULT_THREAD_PATTERN.matcher(line);
                 if (m.find()) {
                     tid = Integer.parseInt(m.group(1));
