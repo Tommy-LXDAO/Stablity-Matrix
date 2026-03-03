@@ -1,5 +1,7 @@
 ###
+POST http://127.0.0.1:8888/session/create
 
+###
 # curl --location --request POST 'http://127.0.0.1:8888/ai/analyze'
 #--form 'files=@"/Users/lyw/Downloads/android_bug_demo/bugreports/bugreport-ALN-AL10-HUAWEIALN-AL10-2025-12-14-16-40-04/FS/data/tombstones/tombstone_00"'
 #--form 'sessionId="286698786670120960"'
