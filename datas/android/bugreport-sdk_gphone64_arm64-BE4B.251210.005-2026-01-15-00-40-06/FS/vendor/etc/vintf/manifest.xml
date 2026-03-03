@@ -1,0 +1,15 @@
+<!--
+    Input:
+        device/generic/goldfish/manifest.xml
+        device/generic/goldfish/hals/audio/android.hardware.audio.effects@7.0.xml
+-->
+<manifest version="9.0" type="device" target-level="8">
+    <hal format="hidl">
+        <name>android.hardware.audio.effect</name>
+        <transport>hwbinder</transport>
+        <fqname>@7.0::IEffectsFactory/default</fqname>
+    </hal>
+    <sepolicy>
+        <version>202504</version>
+    </sepolicy>
+</manifest>

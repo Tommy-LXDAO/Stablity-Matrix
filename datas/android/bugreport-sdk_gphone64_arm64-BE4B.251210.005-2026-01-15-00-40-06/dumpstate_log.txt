@@ -1,0 +1,137 @@
+Module metadata package name: com.google.android.modulemetadata
+Launching async 'SERIALIZE PERFETTO TRACE'Duration of 'SYSTEM LOG': 1.37s
+Duration of 'EVENT LOG': 0.04s
+Duration of 'STATS LOG': 0.00s
+Duration of 'RADIO LOG': 0.04s
+logcat: Logcat read failure: No such file or directory
+*** command 'logcat -L -b all -v threadtime -v printable -v uid -d *:v' failed: exit code 1
+Start thread pool:1
+Adding dir /cache/recovery (recursive: 1)
+/cache/recovery: No such file or directory
+Adding dir /data/misc/recovery (recursive: 1)
+Adding dir /data/misc/update_engine_log (recursive: 1)
+Adding dir /data/misc/update_engine/prefs (recursive: 1)
+/data/misc/update_engine/prefs: No such file or directory
+Adding dir /data/misc/logd (recursive: 0)
+/data/misc/logd: No such file or directory
+Adding dir /data/misc/prereboot (recursive: 0)
+MOUNT INFO: 55 entries added to zip file
+Duration of 'DUMP TRACES': 1.59s
+*** command 'iptables -t mangle -L -nvx' timed out after 10.004s (killing pid 24824)
+Duration of 'IPTABLES MANGLE': 10.01s
+Failed to read metadata.
+*** command 'lpdump --all' failed: exit code 66
+Duration of 'LPDUMP': 1.03s
+Duration of 'DEVICE-MAPPER': 1.03s
+Adding dir /metadata/ota (recursive: 1)
+execvp on command 'iotop -n 1 -m 100' failed (error: No such file or directory)
+*** command 'iotop -n 1 -m 100' failed: exit code 1
+Adding dir /data/misc/apexdata/com.android.uwb/log (recursive: 1)
+shutdown thread pool
+Start thread pool:3
+section 1000 status 1
+Warning: Skipping "android.frameworks.sensorservice@1.0::ISensorManager/default": cannot be fetched from service manager (null)
+section 1000 status 2
+section 1002 status 1
+Warning: Skipping "android.hidl.allocator@1.0::IAllocator/ashmem": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/ashmem": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/software": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.token@1.0::ITokenManager/default": cannot be fetched from service manager (null)
+section 1002 status 2
+section 1109 status 1
+section 1109 status 2
+section 1110 status 1
+section 1110 status 2
+section 1111 status 1
+section 1111 status 2
+section 1112 status 1
+*** command 'lshal --all --types=all' failed: exit code 136
+android.frameworks.sensorservice@1.0::ISensorManager/default does not exist, or no permission to connect.
+*** command 'lshal debug -E android.frameworks.sensorservice@1.0::ISensorManager/default' failed: exit code 128
+section 1112 status 2
+section 1113 status 1
+section 1113 status 2
+section 1114 status 1
+section 1114 status 2
+section 1115 status 1
+section 1115 status 2
+section 1116 status 1
+android.hidl.allocator@1.0::IAllocator/ashmem does not exist, or no permission to connect.
+*** command 'lshal debug -E android.hidl.allocator@1.0::IAllocator/ashmem' failed: exit code 128
+android.hidl.base@1.0::IBase/ashmem does not exist, or no permission to connect.
+*** command 'lshal debug -E android.hidl.base@1.0::IBase/ashmem' failed: exit code 128
+android.hidl.base@1.0::IBase/default does not exist, or no permission to connect.
+*** command 'lshal debug -E android.hidl.base@1.0::IBase/default' failed: exit code 128
+android.hidl.base@1.0::IBase/software does not exist, or no permission to connect.
+*** command 'lshal debug -E android.hidl.base@1.0::IBase/software' failed: exit code 128
+android.hidl.token@1.0::ITokenManager/default does not exist, or no permission to connect.
+*** command 'lshal debug -E android.hidl.token@1.0::ITokenManager/default' failed: exit code 128
+Adding dir /system/etc/vintf/ (recursive: 1)
+Adding dir /vendor/etc/vintf/ (recursive: 1)
+Adding dir /system_ext/etc/vintf/ (recursive: 1)
+Adding dir /data/misc/nfc/logs (recursive: 1)
+AddAnrTraceDir(): dump_traces_file=/data/user_de/0/com.android.shell/files/bugreports/dumptrace_BZjbOl, anr_traces_dir=/data/anr
+Dumping current ANR traces (/data/user_de/0/com.android.shell/files/bugreports/dumptrace_BZjbOl) to the main bugreport entry
+Calling IDumpstateDevice implementation using path /data/user_de/0/com.android.shell/files/bugreports/dumpstate_board.txt
+Calling IDumpstateDevice implementation using path /data/user_de/0/com.android.shell/files/bugreports/dumpstate_board.bin
+Using IDumpstateDevice AIDL HALIgnoring empty dumpstate_board.bin
+Duration of 'dumpstate_board()': 1.03s
+Duration of 'DUMP CHECKINS': 1.14s
+section 1116 status 2
+section 2001 status 1
+section 2001 status 2
+section 2002 status 1
+section 2002 status 2
+section 2003 status 1
+section 2003 status 2
+section 2004 status 1
+section 2004 status 2
+section 2005 status 1
+section 2005 status 2
+section 2006 status 1
+section 2006 status 2
+section 2007 status 1
+section 2007 status 2
+section 3054 status 1
+section 3054 status 2
+section 3055 status 1
+section 3055 status 2
+section 3056 status 1
+section 3056 status 2
+Duration of 'INCIDENT REPORT': 2.53s
+Duration of 'DUMPSYS HIGH': 3.00s
+Duration of 'SERVICE HIGH connectivity': 4.86s
+Error: must be root
+Adding dir /data/misc/snapshotctl_log (recursive: 0)
+Can't find service: android.hardware.cas.IMediaCasService/default
+Failed to start dump thread for service: android.hardware.cas.IMediaCasService/default, status: -2Can't find service: android.hardware.gatekeeper.IGatekeeper/default
+Failed to start dump thread for service: android.hardware.gatekeeper.IGatekeeper/default, status: -2Can't find service: android.hardware.radio.config.IRadioConfig/default
+Failed to start dump thread for service: android.hardware.radio.config.IRadioConfig/default, status: -2Can't find service: android.hardware.radio.data.IRadioData/slot1
+Failed to start dump thread for service: android.hardware.radio.data.IRadioData/slot1, status: -2Can't find service: android.hardware.radio.ims.IRadioIms/slot1
+Failed to start dump thread for service: android.hardware.radio.ims.IRadioIms/slot1, status: -2Can't find service: android.hardware.radio.ims.media.IImsMedia/default
+Failed to start dump thread for service: android.hardware.radio.ims.media.IImsMedia/default, status: -2Can't find service: android.hardware.radio.messaging.IRadioMessaging/slot1
+Failed to start dump thread for service: android.hardware.radio.messaging.IRadioMessaging/slot1, status: -2Can't find service: android.hardware.radio.modem.IRadioModem/slot1
+Failed to start dump thread for service: android.hardware.radio.modem.IRadioModem/slot1, status: -2Can't find service: android.hardware.radio.network.IRadioNetwork/slot1
+Failed to start dump thread for service: android.hardware.radio.network.IRadioNetwork/slot1, status: -2Can't find service: android.hardware.radio.sap.ISap/slot1
+Failed to start dump thread for service: android.hardware.radio.sap.ISap/slot1, status: -2Can't find service: android.hardware.radio.sim.IRadioSim/slot1
+Failed to start dump thread for service: android.hardware.radio.sim.IRadioSim/slot1, status: -2Can't find service: android.hardware.radio.voice.IRadioVoice/slot1
+Failed to start dump thread for service: android.hardware.radio.voice.IRadioVoice/slot1, status: -2Can't find service: android.hardware.security.sharedsecret.ISharedSecret/gatekeeper
+Failed to start dump thread for service: android.hardware.security.sharedsecret.ISharedSecret/gatekeeper, status: -2Can't find service: android.hardware.threadnetwork.IThreadChip/chip0
+Failed to start dump thread for service: android.hardware.threadnetwork.IThreadChip/chip0, status: -2Can't find service: android.hardware.usb.IUsb/default
+Failed to start dump thread for service: android.hardware.usb.IUsb/default, status: -2Can't find service: android.hardware.uwb.IUwb/default
+Failed to start dump thread for service: android.hardware.uwb.IUwb/default, status: -2Can't find service: android.hardware.wifi.supplicant.ISupplicant/default
+Failed to start dump thread for service: android.hardware.wifi.supplicant.ISupplicant/default, status: -2Can't find service: android.service.gatekeeper.IGateKeeperService
+Failed to start dump thread for service: android.service.gatekeeper.IGateKeeperService, status: -2Can't find service: android.system.vold.IVold/default
+Failed to start dump thread for service: android.system.vold.IVold/default, status: -2Can't find service: vold
+Failed to start dump thread for service: vold, status: -2Duration of 'DUMPSYS': 6.12s
+Adding dir /data/misc/bluetooth/logs (recursive: 1)
+Duration of 'APP SERVICES NON-PLATFORM': 1.14s
+Duration of 'APP PROVIDERS NON-PLATFORM': 2.37s
+Adding dir /linkerconfig (recursive: 1)
+Adding frozen processes from /sys/fs/cgroup
+Duration of 'DUMPSTATE': 19.91s
+Adding main entry (bugreport-sdk_gphone64_arm64-BE4B.251210.005-2026-01-15-00-40-06.txt) from /data/user_de/0/com.android.shell/files/bugreports/bugreport-sdk_gphone64_arm64-BE4B.251210.005-2026-01-15-00-40-06.tmp to .zip bugreport
+dumpstate id 4 finished around 2026/01/15 00:40:43 (37 s)
+Adding zip text entry main_entry.txt
+dumpstate_log.txt entry on zip file logged up to here

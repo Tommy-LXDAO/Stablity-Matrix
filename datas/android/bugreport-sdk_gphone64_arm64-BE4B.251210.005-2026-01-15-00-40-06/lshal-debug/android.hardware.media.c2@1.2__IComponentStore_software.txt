@@ -1,0 +1,254 @@
+Beginning of dump -- C2ComponentStore: android.componentStore.platform
+
+  Supported components:
+
+    name: c2.android.aac.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/mp4a-latm
+    aliases:
+
+    name: c2.android.aac.encoder
+    domain: 2
+    kind: 2
+    rank: 8
+    mediaType: audio/mp4a-latm
+    aliases:
+
+    name: c2.android.amrnb.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/3gpp
+    aliases:
+
+    name: c2.android.amrnb.encoder
+    domain: 2
+    kind: 2
+    rank: 8
+    mediaType: audio/3gpp
+    aliases:
+
+    name: c2.android.amrwb.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/amr-wb
+    aliases:
+
+    name: c2.android.amrwb.encoder
+    domain: 2
+    kind: 2
+    rank: 8
+    mediaType: audio/amr-wb
+    aliases:
+
+    name: c2.android.apv.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/apv
+    aliases:
+
+    name: c2.android.apv.encoder
+    domain: 1
+    kind: 2
+    rank: 512
+    mediaType: video/apv
+    aliases:
+
+    name: c2.android.av1-dav1d.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/av01
+    aliases:
+
+    name: c2.android.av1.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/av01
+    aliases:
+
+    name: c2.android.av1.encoder
+    domain: 1
+    kind: 2
+    rank: 512
+    mediaType: video/av01
+    aliases:
+
+    name: c2.android.avc.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/avc
+    aliases:
+
+    name: c2.android.avc.encoder
+    domain: 1
+    kind: 2
+    rank: 512
+    mediaType: video/avc
+    aliases:
+
+    name: c2.android.flac.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/flac
+    aliases:
+
+    name: c2.android.flac.encoder
+    domain: 2
+    kind: 2
+    rank: 8
+    mediaType: audio/flac
+    aliases:
+
+    name: c2.android.g711.alaw.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/g711-alaw
+    aliases:
+
+    name: c2.android.g711.mlaw.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/g711-mlaw
+    aliases:
+
+    name: c2.android.gsm.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/gsm
+    aliases:
+
+    name: c2.android.h263.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/3gpp
+    aliases:
+
+    name: c2.android.h263.encoder
+    domain: 1
+    kind: 2
+    rank: 512
+    mediaType: video/3gpp
+    aliases:
+
+    name: c2.android.hevc.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/hevc
+    aliases:
+
+    name: c2.android.hevc.encoder
+    domain: 1
+    kind: 2
+    rank: 512
+    mediaType: video/hevc
+    aliases:
+
+    name: c2.android.iamf.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/iamf
+    aliases:
+
+    name: c2.android.mp3.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/mpeg
+    aliases:
+
+    name: c2.android.mpeg2.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/mpeg2
+    aliases:
+
+    name: c2.android.mpeg4.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/mp4v-es
+    aliases:
+
+    name: c2.android.mpeg4.encoder
+    domain: 1
+    kind: 2
+    rank: 512
+    mediaType: video/mp4v-es
+    aliases:
+
+    name: c2.android.opus.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/opus
+    aliases:
+
+    name: c2.android.opus.encoder
+    domain: 2
+    kind: 2
+    rank: 8
+    mediaType: audio/opus
+    aliases:
+
+    name: c2.android.raw.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/raw
+    aliases:
+
+    name: c2.android.vorbis.decoder
+    domain: 2
+    kind: 1
+    rank: 8
+    mediaType: audio/vorbis
+    aliases:
+
+    name: c2.android.vp8.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/x-vnd.on2.vp8
+    aliases:
+
+    name: c2.android.vp8.encoder
+    domain: 1
+    kind: 2
+    rank: 512
+    mediaType: video/x-vnd.on2.vp8
+    aliases:
+
+    name: c2.android.vp9.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/x-vnd.on2.vp9
+    aliases:
+
+    name: c2.android.vp9.encoder
+    domain: 1
+    kind: 2
+    rank: 512
+    mediaType: video/x-vnd.on2.vp9
+    aliases:
+
+  Active components:
+
+    NONE
+
+End of dump -- C2ComponentStore: android.componentStore.platform

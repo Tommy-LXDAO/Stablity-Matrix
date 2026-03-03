@@ -1,0 +1,37 @@
+Beginning of dump -- C2ComponentStore: android.componentStore.goldfish
+
+  Supported components:
+
+    name: c2.goldfish.h264.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/avc
+    aliases:
+
+    name: c2.goldfish.hevc.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/hevc
+    aliases:
+
+    name: c2.goldfish.vp8.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/x-vnd.on2.vp8
+    aliases:
+
+    name: c2.goldfish.vp9.decoder
+    domain: 1
+    kind: 1
+    rank: 512
+    mediaType: video/x-vnd.on2.vp9
+    aliases:
+
+  Active components:
+
+    NONE
+
+End of dump -- C2ComponentStore: android.componentStore.goldfish

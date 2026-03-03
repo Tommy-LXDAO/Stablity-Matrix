@@ -1,0 +1,11 @@
+<!--
+    Input:
+        device/generic/goldfish/hals/audio/android.hardware.audio@7.1-impl.ranchu.xml
+-->
+<manifest version="9.0" type="device">
+    <hal format="hidl">
+        <name>android.hardware.audio</name>
+        <transport>hwbinder</transport>
+        <fqname>@7.1::IDevicesFactory/default</fqname>
+    </hal>
+</manifest>
