@@ -8,7 +8,7 @@ spring:
     # OpenAI大模型配置 (适用于任何OpenAI兼容的API)
     openai-sdk:
       api-key: ${NEWAPI_KEY:${OPENAI_API_KEY:}}  # NEWAPI_KEY优先，其次OPENAI_API_KEY，最后为空
-      base-url: ${NEWAPI_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com}}  # NEWAPI_BASE_URL优先，其次OPENAI_BASE_URL
+      base-url: ${NEWAPI_BASE_URL:${OPENAI_BASE_URL:}}  # NEWAPI_BASE_URL优先，其次OPENAI_BASE_URL
       chat:
         options:
           model: ${NEWAPI_MODEL:${OPENAI_MODEL:DeepSeek-V3.2-Exp}}  # NEWAPI_MODEL优先，其次OPENAI_MODEL
