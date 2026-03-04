@@ -27,6 +27,13 @@ public class TarGzExtractor {
     public static List<String> extractToDirectory(String filePath, String outputDir) {
         List<String> extractedFiles = new ArrayList<>();
         try {
+            // 检查源文件是否存在
+            Path sourcePath = Paths.get(filePath);
+            if (!Files.exists(sourcePath)) {
+                logger.error("源文件不存在: {}", filePath);
+                return null;
+            }
+
             Path outputPath = Paths.get(outputDir);
             // 如果输出目录不存在，则创建
             if (!Files.exists(outputPath)) {
