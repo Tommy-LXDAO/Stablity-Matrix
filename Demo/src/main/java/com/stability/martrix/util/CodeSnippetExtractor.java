@@ -128,7 +128,7 @@ public class CodeSnippetExtractor {
                                                  BiFunction<String, String, String> pathResolver,
                                                  int line, int lineRange,
                                                  String commitId, String branchName,
-                                                 String workDir) {
+                                                 String workDir, String codeRepoName) {
         // 确定工作目录
         String targetDir = workDir;
         if (targetDir == null || targetDir.isEmpty()) {
@@ -142,7 +142,7 @@ public class CodeSnippetExtractor {
         try {
             File directory = new File(targetDir);
             // 1. git clone
-            ProcessBuilder clonePb = new ProcessBuilder("git", "clone", cloneUrl, targetDir);
+            ProcessBuilder clonePb = new ProcessBuilder("git", "clone", cloneUrl);
             clonePb.directory(directory);
             clonePb.redirectErrorStream(true);
             Process cloneProcess = clonePb.start();
@@ -150,7 +150,9 @@ public class CodeSnippetExtractor {
             if (cloneExitCode != 0) {
                 return "Error: git clone failed with exit code " + cloneExitCode;
             }
-
+            // 1.1 update new targetDir
+            targetDir = workDir + "/" + codeRepoName;
+            directory = new File(targetDir);
             // 2. git checkout -b newBranch branchName
             ProcessBuilder checkoutPb = new ProcessBuilder("git", "checkout", "-b", "newBranch", "remotes/origin/" + branchName);
             checkoutPb.directory(directory);
