@@ -3,32 +3,21 @@ package com.stability.martrix.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 代码片段提取工具类
- * 支持通过文件名+行号、commit-id和branch-name获取代码片段
- * 代码来源链接可自定义，支持GitHub、GitLab等平台
+ * 通过文件名+行号、commit-id和branch-name获取代码片段
  */
 public class CodeSnippetExtractor {
 
     private static final Logger logger = LoggerFactory.getLogger(CodeSnippetExtractor.class);
-
-    private static final Pattern GITHUB_URL_PATTERN = Pattern.compile(
-            "(https?://[^/]+)/([^/]+)/([^/]+)/(blob|tree)/([^/]+)/(.+)");
-
-    private static final Pattern GITLAB_URL_PATTERN = Pattern.compile(
-            "(https?://[^/]+)/([^/]+)/([^/]+)/-/\\s*(blob|tree)/([^/]+)/(.+)");
 
     /**
      * 代码片段结果
@@ -97,9 +86,9 @@ public class CodeSnippetExtractor {
     }
 
     /**
-     * 从自定义代码源URL获取代码片段
+     * 获取代码片段
      *
-     * @param baseUrl    代码源基础URL（如 https://github.com/owner/repo）
+     * @param baseUrl    代码源基础URL（如 https://example.com/repo）
      * @param filePath   文件路径
      * @param lineNumber 行号
      * @param commitId   commit ID或branch名称
@@ -111,9 +100,9 @@ public class CodeSnippetExtractor {
     }
 
     /**
-     * 从自定义代码源URL获取代码片段（多行）
+     * 获取代码片段（多行）
      *
-     * @param baseUrl    代码源基础URL（如 https://github.com/owner/repo）
+     * @param baseUrl    代码源基础URL
      * @param filePath   文件路径
      * @param startLine  起始行号
      * @param endLine    结束行号
@@ -138,76 +127,6 @@ public class CodeSnippetExtractor {
     }
 
     /**
-     * 从GitHub获取代码片段
-     *
-     * @param owner      仓库所有者
-     * @param repo       仓库名
-     * @param filePath   文件路径
-     * @param startLine  起始行号
-     * @param endLine    结束行号
-     * @param commitId   commit ID或branch名称
-     * @return 代码片段结果
-     */
-    public static SnippetResult getGithubSnippet(String owner, String repo,
-                                                   String filePath, int startLine,
-                                                   int endLine, String commitId) {
-        String baseUrl = "https://github.com/" + owner + "/" + repo;
-        return getSnippet(baseUrl, filePath, startLine, endLine, commitId, commitId);
-    }
-
-    /**
-     * 从GitHub获取单行代码片段
-     *
-     * @param owner      仓库所有者
-     * @param repo       仓库名
-     * @param filePath   文件路径
-     * @param lineNumber 行号
-     * @param commitId   commit ID或branch名称
-     * @return 代码片段结果
-     */
-    public static SnippetResult getGithubSnippet(String owner, String repo,
-                                                   String filePath, int lineNumber,
-                                                   String commitId) {
-        return getGithubSnippet(owner, repo, filePath, lineNumber, lineNumber, commitId);
-    }
-
-    /**
-     * 从GitLab获取代码片段
-     *
-     * @param host       GitLab主机（如 gitlab.com）
-     * @param owner      仓库所有者
-     * @param repo       仓库名
-     * @param filePath   文件路径
-     * @param startLine  起始行号
-     * @param endLine    结束行号
-     * @param commitId   commit ID或branch名称
-     * @return 代码片段结果
-     */
-    public static SnippetResult getGitlabSnippet(String host, String owner, String repo,
-                                                   String filePath, int startLine,
-                                                   int endLine, String commitId) {
-        String baseUrl = "https://" + host + "/" + owner + "/" + repo;
-        return getSnippet(baseUrl, filePath, startLine, endLine, commitId, commitId);
-    }
-
-    /**
-     * 从GitLab获取单行代码片段
-     *
-     * @param host       GitLab主机
-     * @param owner      仓库所有者
-     * @param repo       仓库名
-     * @param filePath   文件路径
-     * @param lineNumber 行号
-     * @param commitId   commit ID或branch名称
-     * @return 代码片段结果
-     */
-    public static SnippetResult getGitlabSnippet(String host, String owner, String repo,
-                                                   String filePath, int lineNumber,
-                                                   String commitId) {
-        return getGitlabSnippet(host, owner, repo, filePath, lineNumber, lineNumber, commitId);
-    }
-
-    /**
      * 构建代码浏览链接
      *
      * @param baseUrl    基础URL
@@ -217,12 +136,8 @@ public class CodeSnippetExtractor {
      * @return 代码浏览链接
      */
     public static String buildCodeUrl(String baseUrl, String filePath, int lineNumber, String ref) {
-        // 移除末尾斜杠
         baseUrl = baseUrl.replaceAll("/$", "");
-
-        // 编码文件路径
         String encodedPath = filePath.replace(" ", "%20");
-
         return baseUrl + "/blob/" + ref + "/" + encodedPath + "#L" + lineNumber;
     }
 
@@ -235,23 +150,8 @@ public class CodeSnippetExtractor {
      * @return Raw链接
      */
     private static String buildRawUrl(String baseUrl, String filePath, String ref) {
-        // 移除末尾斜杠
         baseUrl = baseUrl.replaceAll("/$", "");
-
-        // 根据URL类型构建raw URL
-        String rawUrl;
-        if (baseUrl.contains("github.com")) {
-            rawUrl = baseUrl.replace("github.com", "raw.githubusercontent.com")
-                    + "/" + ref + "/" + filePath;
-        } else if (baseUrl.contains("gitlab.com")) {
-            rawUrl = baseUrl.replace("gitlab.com", "gitlab.com/-/raw")
-                    + "/" + ref + "/" + filePath;
-        } else {
-            // 通用构建方式
-            rawUrl = baseUrl + "/raw/" + ref + "/" + filePath;
-        }
-
-        return rawUrl;
+        return baseUrl + "/raw/" + ref + "/" + filePath;
     }
 
     /**
@@ -269,7 +169,6 @@ public class CodeSnippetExtractor {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(rawUrl))
-                    .header("Accept", "application/vnd.github.v3.raw")
                     .build();
 
             HttpResponse<String> response = client.send(request,
@@ -291,20 +190,5 @@ public class CodeSnippetExtractor {
         }
 
         return result;
-    }
-
-    /**
-     * 解析代码源URL类型
-     *
-     * @param url 代码源URL
-     * @return URL类型：github, gitlab, 或 other
-     */
-    public static String parseUrlType(String url) {
-        if (url.contains("github.com")) {
-            return "github";
-        } else if (url.contains("gitlab.com") || url.contains("git")) {
-            return "gitlab";
-        }
-        return "other";
     }
 }
