@@ -1,15 +1,8 @@
 package com.stability.martrix.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * 代码片段提取工具类
@@ -17,178 +10,193 @@ import java.util.List;
  */
 public class CodeSnippetExtractor {
 
-    private static final Logger logger = LoggerFactory.getLogger(CodeSnippetExtractor.class);
-
     /**
-     * 代码片段结果
-     */
-    public static class SnippetResult {
-        private final String filePath;
-        private final int startLine;
-        private final int endLine;
-        private final String commitId;
-        private final String branchName;
-        private final String codeUrl;
-        private final List<String> lines;
-        private final String rawUrl;
-
-        public SnippetResult(String filePath, int startLine, int endLine,
-                             String commitId, String branchName, String codeUrl,
-                             List<String> lines, String rawUrl) {
-            this.filePath = filePath;
-            this.startLine = startLine;
-            this.endLine = endLine;
-            this.commitId = commitId;
-            this.branchName = branchName;
-            this.codeUrl = codeUrl;
-            this.lines = lines;
-            this.rawUrl = rawUrl;
-        }
-
-        public String getFilePath() {
-            return filePath;
-        }
-
-        public int getStartLine() {
-            return startLine;
-        }
-
-        public int getEndLine() {
-            return endLine;
-        }
-
-        public String getCommitId() {
-            return commitId;
-        }
-
-        public String getBranchName() {
-            return branchName;
-        }
-
-        public String getCodeUrl() {
-            return codeUrl;
-        }
-
-        public List<String> getLines() {
-            return lines;
-        }
-
-        public String getRawUrl() {
-            return rawUrl;
-        }
-
-        @Override
-        public String toString() {
-            return "SnippetResult{filePath='" + filePath + "', startLine=" + startLine +
-                    ", endLine=" + endLine + ", commitId='" + commitId + '\'' +
-                    ", branchName='" + branchName + "'}";
-        }
-    }
-
-    /**
-     * 获取代码片段
+     * 通过Git获取代码片段
      *
-     * @param baseUrl    代码源基础URL（如 https://example.com/repo）
+     * @param cloneUrl   仓库克隆URL
      * @param filePath   文件路径
-     * @param lineNumber 行号
-     * @param commitId   commit ID或branch名称
-     * @return 代码片段结果
-     */
-    public static SnippetResult getSnippet(String baseUrl, String filePath,
-                                            int lineNumber, String commitId) {
-        return getSnippet(baseUrl, filePath, lineNumber, lineNumber, commitId, commitId);
-    }
-
-    /**
-     * 获取代码片段（多行）
-     *
-     * @param baseUrl    代码源基础URL
-     * @param filePath   文件路径
-     * @param startLine  起始行号
-     * @param endLine    结束行号
+     * @param line       崩溃发生的行号
+     * @param lineRange  代码片段的范围（向前或向后几行）
      * @param commitId   commit ID
      * @param branchName branch名称
-     * @return 代码片段结果
+     * @return 代码片段内容
      */
-    public static SnippetResult getSnippet(String baseUrl, String filePath,
-                                            int startLine, int endLine,
-                                            String commitId, String branchName) {
-        // 构建代码浏览链接
-        String codeUrl = buildCodeUrl(baseUrl, filePath, startLine, commitId);
-
-        // 构建raw链接获取实际代码
-        String rawUrl = buildRawUrl(baseUrl, filePath, commitId);
-
-        // 获取代码内容
-        List<String> lines = fetchCodeLines(rawUrl, startLine, endLine);
-
-        return new SnippetResult(filePath, startLine, endLine, commitId,
-                branchName, codeUrl, lines, rawUrl);
+    public static String getSnippetByGit(String cloneUrl, String filePath,
+                                                 int line, int lineRange,
+                                                 String commitId, String branchName) {
+        return getSnippetByGit(cloneUrl, filePath, line, lineRange, commitId, branchName, null);
     }
 
     /**
-     * 构建代码浏览链接
+     * 使用git clone将代码下载下来，然后切换到对应的分支，然后切到正确的代码位置，最后使用filePath+行号范围获取代码信息，返回字符串为代码片段字符串
      *
-     * @param baseUrl    基础URL
+     * @param cloneUrl   仓库克隆URL
      * @param filePath   文件路径
-     * @param lineNumber 行号
-     * @param ref        commit ID或branch
-     * @return 代码浏览链接
+     * @param line       崩溃发生的行号
+     * @param lineRange  代码片段的范围（向前或向后几行）
+     * @param commitId   commit ID
+     * @param branchName branch名称
+     * @param workDir    工作目录，如果为null则使用临时目录，注意：这里的工作目录必须是绝对路径
+     * @return 代码片段内容
      */
-    public static String buildCodeUrl(String baseUrl, String filePath, int lineNumber, String ref) {
-        baseUrl = baseUrl.replaceAll("/$", "");
-        String encodedPath = filePath.replace(" ", "%20");
-        return baseUrl + "/blob/" + ref + "/" + encodedPath + "#L" + lineNumber;
-    }
-
-    /**
-     * 构建Raw代码链接
-     *
-     * @param baseUrl  基础URL
-     * @param filePath 文件路径
-     * @param ref      commit ID或branch
-     * @return Raw链接
-     */
-    private static String buildRawUrl(String baseUrl, String filePath, String ref) {
-        baseUrl = baseUrl.replaceAll("/$", "");
-        return baseUrl + "/raw/" + ref + "/" + filePath;
-    }
-
-    /**
-     * 从Raw URL获取代码行
-     *
-     * @param rawUrl    Raw URL
-     * @param startLine 起始行
-     * @param endLine   结束行
-     * @return 代码行列表
-     */
-    private static List<String> fetchCodeLines(String rawUrl, int startLine, int endLine) {
-        List<String> result = new ArrayList<>();
-
-        try {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(rawUrl))
-                    .build();
-
-            HttpResponse<String> response = client.send(request,
-                    HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                String[] allLines = response.body().split("\n");
-                int linesToFetch = Math.min(endLine, allLines.length);
-                for (int i = startLine - 1; i < linesToFetch; i++) {
-                    result.add(allLines[i]);
-                }
-            } else {
-                logger.warn("获取代码片段失败，HTTP状态码: {}, URL: {}",
-                        response.statusCode(), rawUrl);
+    public static String getSnippetByGit(String cloneUrl, String filePath,
+                                                 int line, int lineRange,
+                                                 String commitId, String branchName,
+                                                 String workDir) {
+        // 确定工作目录
+        String targetDir = workDir;
+        if (targetDir == null || targetDir.isEmpty()) {
+            // 使用临时目录
+            try {
+                targetDir = java.nio.file.Files.createTempDirectory("git_clone_").toString();
+            } catch (java.io.IOException e) {
+                return "Error: Failed to create temp directory - " + e.getMessage();
             }
-        } catch (IOException | InterruptedException e) {
-            logger.error("获取代码片段失败: {}", rawUrl, e);
-            Thread.currentThread().interrupt();
         }
 
-        return result;
+        try {
+            File directory = new File(targetDir);
+            // 1. git clone
+            ProcessBuilder clonePb = new ProcessBuilder("git", "clone", cloneUrl, targetDir);
+            clonePb.directory(directory);
+            clonePb.redirectErrorStream(true);
+            Process cloneProcess = clonePb.start();
+            int cloneExitCode = cloneProcess.waitFor();
+            if (cloneExitCode != 0) {
+                return "Error: git clone failed with exit code " + cloneExitCode;
+            }
+
+            // 2. git checkout -b newBranch branchName
+            ProcessBuilder checkoutPb = new ProcessBuilder("git", "checkout", "-b", "newBranch", "remotes/origin/" + branchName);
+            checkoutPb.directory(directory);
+            checkoutPb.redirectErrorStream(true);
+            Process checkoutProcess = checkoutPb.start();
+            int checkoutExitCode = checkoutProcess.waitFor();
+            if (checkoutExitCode != 0) {
+                return "Error: git checkout failed with exit code " + checkoutExitCode;
+            }
+
+            // 3. git reset --hard commitId
+            ProcessBuilder resetPb = new ProcessBuilder("git", "reset", "--hard", commitId);
+            resetPb.directory(directory);
+            resetPb.redirectErrorStream(true);
+            Process resetProcess = resetPb.start();
+            int resetExitCode = resetProcess.waitFor();
+            if (resetExitCode != 0) {
+                return "Error: git reset failed with exit code " + resetExitCode;
+            }
+
+            // 4. 使用filePath+行号范围获取代码信息
+            String fullFilePath = targetDir + java.io.File.separator + filePath;
+            java.io.File file = new java.io.File(fullFilePath);
+            if (!file.exists()) {
+                return "Error: File not found - " + fullFilePath;
+            }
+
+            java.util.List<String> allLines = java.nio.file.Files.readAllLines(file.toPath());
+            int startLine = Math.max(1, line - lineRange);
+            int endLine = Math.min(allLines.size(), line + lineRange);
+
+            StringBuilder snippet = new StringBuilder();
+            for (int i = startLine; i <= endLine; i++) {
+                String prefix = (i == line) ? ">>> " : "    ";
+                snippet.append(prefix).append(i).append(" | ").append(allLines.get(i - 1)).append("\n");
+            }
+
+            return snippet.toString();
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    /**
+     * 通过Git获取代码片段（使用文件名+路径解析函数）
+     * 可参考上面的做法，不同的是，在clone并且切换到正确的分支和commitId之后，在获取代码信息之前调用pathResolver获取文件路径
+     *
+     * @param cloneUrl       仓库克隆URL
+     * @param fileName       文件名
+     * @param pathResolver   文件路径解析函数，根据workDir和fileName返回文件路径
+     * @param line           崩溃发生的行号
+     * @param lineRange      代码片段的范围（向前或向后几行）
+     * @param commitId       commit ID
+     * @param branchName     branch名称
+     * @param workDir        工作目录，如果为null则使用临时目录
+     * @return 代码片段内容
+     */
+    public static String getSnippetByGit(String cloneUrl, String fileName,
+                                                 BiFunction<String, String, String> pathResolver,
+                                                 int line, int lineRange,
+                                                 String commitId, String branchName,
+                                                 String workDir) {
+        // 确定工作目录
+        String targetDir = workDir;
+        if (targetDir == null || targetDir.isEmpty()) {
+            try {
+                targetDir = java.nio.file.Files.createTempDirectory("git_clone_").toString();
+            } catch (java.io.IOException e) {
+                return "Error: Failed to create temp directory - " + e.getMessage();
+            }
+        }
+
+        try {
+            File directory = new File(targetDir);
+            // 1. git clone
+            ProcessBuilder clonePb = new ProcessBuilder("git", "clone", cloneUrl, targetDir);
+            clonePb.directory(directory);
+            clonePb.redirectErrorStream(true);
+            Process cloneProcess = clonePb.start();
+            int cloneExitCode = cloneProcess.waitFor();
+            if (cloneExitCode != 0) {
+                return "Error: git clone failed with exit code " + cloneExitCode;
+            }
+
+            // 2. git checkout -b newBranch branchName
+            ProcessBuilder checkoutPb = new ProcessBuilder("git", "checkout", "-b", "newBranch", "remotes/origin/" + branchName);
+            checkoutPb.directory(directory);
+            checkoutPb.redirectErrorStream(true);
+            Process checkoutProcess = checkoutPb.start();
+            int checkoutExitCode = checkoutProcess.waitFor();
+            if (checkoutExitCode != 0) {
+                return "Error: git checkout failed with exit code " + checkoutExitCode;
+            }
+
+            // 3. git reset --hard commitId
+            ProcessBuilder resetPb = new ProcessBuilder("git", "reset", "--hard", commitId);
+            resetPb.directory(directory);
+            resetPb.redirectErrorStream(true);
+            Process resetProcess = resetPb.start();
+            int resetExitCode = resetProcess.waitFor();
+            if (resetExitCode != 0) {
+                return "Error: git reset failed with exit code " + resetExitCode;
+            }
+
+            // 4. 调用pathResolver获取文件路径
+            String filePath = pathResolver.apply(targetDir, fileName);
+            if (filePath == null || filePath.isEmpty()) {
+                return "Error: pathResolver returned null or empty path for file: " + fileName;
+            }
+
+            // 5. 使用filePath+行号范围获取代码信息
+            java.io.File file = new java.io.File(filePath);
+            if (!file.exists()) {
+                return "Error: File not found - " + filePath;
+            }
+
+            java.util.List<String> allLines = java.nio.file.Files.readAllLines(file.toPath());
+            int startLine = Math.max(1, line - lineRange);
+            int endLine = Math.min(allLines.size(), line + lineRange);
+
+            StringBuilder snippet = new StringBuilder();
+            for (int i = startLine; i <= endLine; i++) {
+                String prefix = (i == line) ? ">>> " : "    ";
+                snippet.append(prefix).append(i).append(" | ").append(allLines.get(i - 1)).append("\n");
+            }
+
+            return snippet.toString();
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
     }
 }
