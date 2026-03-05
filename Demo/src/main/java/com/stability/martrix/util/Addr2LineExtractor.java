@@ -190,6 +190,9 @@ public class Addr2LineExtractor {
      * 输出格式：
      * function_name
      * /path/to/file.c:123:0
+     * 或者：
+     * function_name
+     * /path/to/file.c:123
      */
     private static AddressInfo parseOutput(String address, String output) {
         String[] lines = output.split("\n");
@@ -203,17 +206,6 @@ public class Addr2LineExtractor {
             if (line.isEmpty()) {
                 continue;
             }
-
-            // 检查是否为文件路径行（包含 :行号:列号）
-            Pattern filePattern = Pattern.compile("(.*?):(\\d+):(\\d+)");
-            Matcher fileMatcher = filePattern.matcher(line);
-            if (fileMatcher.matches()) {
-                filePath = fileMatcher.group(1);
-                lineNumber = Integer.parseInt(fileMatcher.group(2));
-                columnNumber = Integer.parseInt(fileMatcher.group(3));
-                continue;
-            }
-
             // 如果不是文件路径行，则可能是函数名
             if (line.startsWith("(") && line.endsWith(")")) {
                 // 跳过一些特殊标记
@@ -221,6 +213,25 @@ public class Addr2LineExtractor {
             }
             if (functionName == null && !line.contains(" at ") && !line.contains(" in ")) {
                 functionName = line;
+            }
+            // 检查是否为文件路径行（包含 :行号:列号）
+            Pattern filePatternWithColumn = Pattern.compile("(.*?):(\\d+):(\\d+)");
+            Matcher fileMatcherWithColumn = filePatternWithColumn.matcher(line);
+            if (fileMatcherWithColumn.matches()) {
+                filePath = fileMatcherWithColumn.group(1);
+                lineNumber = Integer.parseInt(fileMatcherWithColumn.group(2));
+                columnNumber = Integer.parseInt(fileMatcherWithColumn.group(3));
+                break;
+            }
+
+            // 检查是否为文件路径行（只有 :行号，没有列号）
+            Pattern filePatternWithoutColumn = Pattern.compile("(.*?):(\\d+)");
+            Matcher fileMatcherWithoutColumn = filePatternWithoutColumn.matcher(line);
+            if (fileMatcherWithoutColumn.matches()) {
+                filePath = fileMatcherWithoutColumn.group(1);
+                lineNumber = Integer.parseInt(fileMatcherWithoutColumn.group(2));
+                columnNumber = 0;
+                break;
             }
         }
 
