@@ -158,17 +158,8 @@ public class AIFileAnalysisService {
                 logger.info("[sessionId={}] 开始二进制代码解析...", sessionId);
                 topCodeLocation = binaryCodeResolver.resolveTopStackFrame(tombstone);
 
-                if (topCodeLocation != null) {
-                    // 读取代码片段
-                    String snippet = binaryCodeResolver.readCodeSnippet(
-                            topCodeLocation.getSourceFile(),
-                            topCodeLocation.getLineNumber(),
-                            10
-                    );
-                    topCodeLocation.setCodeSnippet(snippet);
-                    logger.info("[sessionId={}] 二进制代码解析完成: {}", sessionId, topCodeLocation.getSourceFile());
-                } else {
-                    logger.info("[sessionId={}] 二进制代码解析完成: 未找到代码位置", sessionId);
+                if (topCodeLocation == null) {
+                    logger.info("[sessionId={}] 二进制代码解析失败：读取代码片段失败", sessionId);
                 }
             }
 
