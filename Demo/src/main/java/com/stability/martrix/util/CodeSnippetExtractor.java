@@ -114,6 +114,7 @@ public class CodeSnippetExtractor {
      * 通过Git获取代码片段（使用文件名+路径解析函数）
      * 可参考上面的做法，不同的是，在clone并且切换到正确的分支和commitId之后，在获取代码信息之前调用pathResolver获取文件路径
      *
+     * @apiNote 注意调用此接口时可能需要分布式锁
      * @param cloneUrl       仓库克隆URL
      * @param fileName       文件名
      * @param pathResolver   文件路径解析函数，根据workDir和fileName返回文件路径
@@ -140,6 +141,19 @@ public class CodeSnippetExtractor {
         }
 
         try {
+            String newDir = workDir + "/" + codeRepoName;
+            File newDirFile = new File(newDir);
+            // 如果newDir路径存在，则删除它
+            if (newDirFile.exists()) {
+                ProcessBuilder rmPb = new ProcessBuilder("rm", "-rf", newDir);
+                rmPb.redirectErrorStream(true);
+                Process rmProcess = rmPb.start();
+                int rmExitCode = rmProcess.waitFor();
+                if (rmExitCode != 0) {
+                    return "Error: Failed to remove existing directory with exit code " + rmExitCode;
+                }
+            }
+
             File directory = new File(targetDir);
             // 1. git clone
             ProcessBuilder clonePb = new ProcessBuilder("git", "clone", cloneUrl);
@@ -151,7 +165,7 @@ public class CodeSnippetExtractor {
                 return "Error: git clone failed with exit code " + cloneExitCode;
             }
             // 1.1 update new targetDir
-            targetDir = workDir + "/" + codeRepoName;
+            targetDir = newDir;
             directory = new File(targetDir);
             // 2. git checkout -b newBranch branchName
             ProcessBuilder checkoutPb = new ProcessBuilder("git", "checkout", "-b", "newBranch", "remotes/origin/" + branchName);
