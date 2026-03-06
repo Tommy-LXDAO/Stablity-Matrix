@@ -7,6 +7,7 @@ import com.stability.martrix.dto.AIAnalysisResponse;
 import com.stability.martrix.dto.CrashAnalysisResult;
 import com.stability.martrix.dto.CrashInfo;
 import com.stability.martrix.dto.FileParseResult;
+import com.stability.martrix.dto.CodeLocation;
 import com.stability.martrix.dto.PatternMatchResult;
 import com.stability.martrix.dto.SessionContext;
 import com.stability.martrix.entity.AArch64Tombstone;
@@ -48,13 +49,15 @@ public class AIFileAnalysisService {
     private final ArchiveExtractionService archiveExtractionService;
     private final SessionService sessionService;
     private final PatternMatchService patternMatchService;
+    private final BinaryCodeResolver binaryCodeResolver;
 
     public AIFileAnalysisService(FileParserFactory fileParserFactory,
                                   ChatClient.Builder chatClientBuilder,
                                   SessionFileStorageService sessionFileStorageService,
                                   ArchiveExtractionService archiveExtractionService,
                                   SessionService sessionService,
-                                  PatternMatchService patternMatchService) {
+                                  PatternMatchService patternMatchService,
+                                  BinaryCodeResolver binaryCodeResolver) {
         this.fileParserFactory = fileParserFactory;
         // 指定 API path 的方式：
         // 方式1: 通过 base-url 配置（推荐，在 application.yaml 中配置）
@@ -67,6 +70,7 @@ public class AIFileAnalysisService {
         this.archiveExtractionService = archiveExtractionService;
         this.sessionService = sessionService;
         this.patternMatchService = patternMatchService;
+        this.binaryCodeResolver = binaryCodeResolver;
     }
 
     /**
@@ -146,9 +150,22 @@ public class AIFileAnalysisService {
                     logger.info("[sessionId={}] 解析完成: 未找到崩溃信息", sessionId);
                 }
             }
+            // ========================================
+            // 第五步：二进制代码解析（将栈顶地址转换为源代码行号）
+            // ========================================
+            CodeLocation topCodeLocation = null;
+            if (hasTombstone && tombstone != null) {
+                logger.info("[sessionId={}] 开始二进制代码解析...", sessionId);
+                topCodeLocation = binaryCodeResolver.resolveTopStackFrame(tombstone);
+
+                if (topCodeLocation == null) {
+                    logger.info("[sessionId={}] 二进制代码解析失败：读取代码片段失败", sessionId);
+                }
+            }
+
 
             // ========================================
-            // 第五步：AI模型调用（解析用户提问）
+            // 第六步：AI模型调用（解析用户提问）
             // ========================================
             String parsedQuestion = null;
             CrashInfo crashInfo = null;
@@ -185,13 +202,13 @@ public class AIFileAnalysisService {
             sessionContext.setSuccess(success);
 
             // ========================================
-            // 第六步：AI分析（调用大模型分析崩溃原因）
+            // 第七步：AI分析（调用大模型分析崩溃原因）
             // ========================================
             String aiAnalysis = null;
             if (hasTombstone || (crashInfo != null && crashInfo.isHasCrashInfo())) {
                 logger.info("[sessionId={}] 开始AI分析...", sessionId);
                 aiAnalysis = analyzeCrashWithAI(sessionId, question, parsedQuestion,
-                        crashInfo, tombstone, patternMatchResult);
+                        crashInfo, tombstone, patternMatchResult, topCodeLocation);
                 logger.info("[sessionId={}] AI分析完成 aiAnalysis={}", sessionId, aiAnalysis);
             }
 
@@ -760,7 +777,7 @@ public class AIFileAnalysisService {
      */
     private String analyzeCrashWithAI(String sessionId, String originalQuestion, String parsedQuestion,
                                        CrashInfo crashInfo, AArch64Tombstone tombstone,
-                                       PatternMatchResult patternMatchResult) {
+                                       PatternMatchResult patternMatchResult, CodeLocation topCodeLocation) {
         try {
             AnalysisData analysisData = new AnalysisData();
 
@@ -812,6 +829,16 @@ public class AIFileAnalysisService {
                 analysisData.tombstone = tombstoneData;
             }
 
+            // 添加代码位置信息
+            if (topCodeLocation != null) {
+                analysisData.codeLocation = new CodeLocationData(
+                    topCodeLocation.getSourceFile(),
+                    topCodeLocation.getLineNumber(),
+                    topCodeLocation.getFunctionName(),
+                    topCodeLocation.getCodeSnippet()
+                );
+            }
+
             String jsonData = objectMapper.writeValueAsString(analysisData);
 
             String prompt = String.format("""
@@ -854,6 +881,21 @@ public class AIFileAnalysisService {
         public String userQuestion;
         public CrashInfoData crashInfo;
         public TombstoneData tombstone;
+        public CodeLocationData codeLocation;
+    }
+
+    static class CodeLocationData {
+        public String sourceFile;
+        public int lineNumber;
+        public String functionName;
+        public String codeSnippet;
+
+        public CodeLocationData(String sourceFile, int lineNumber, String functionName, String codeSnippet) {
+            this.sourceFile = sourceFile;
+            this.lineNumber = lineNumber;
+            this.functionName = functionName;
+            this.codeSnippet = codeSnippet;
+        }
     }
 
     static class PatternMatchData {
