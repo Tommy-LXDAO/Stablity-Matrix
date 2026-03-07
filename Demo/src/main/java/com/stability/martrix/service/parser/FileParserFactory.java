@@ -139,12 +139,26 @@ public class FileParserFactory {
         }
 
         try {
-            List<String> lines = readLinesWithFallback(filePath);
+            List<String> lines = readFileLines(filePath);
             return parseLines(lines);
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("读取文件失败: {}", filePath, e);
             return null;
         }
+    }
+
+    /**
+     * 读取文件内容并解码为行列表
+     *
+     * @param filePath 文件路径
+     * @return 文件内容的行列表
+     * @throws IOException 文件读取或解码失败
+     */
+    public List<String> readFileLines(Path filePath) throws IOException {
+        if (filePath == null) {
+            throw new IOException("文件路径为空，无法读取");
+        }
+        return readLinesWithFallback(filePath);
     }
 
     /**

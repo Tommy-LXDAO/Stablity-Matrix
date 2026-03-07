@@ -14,6 +14,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FileParserFactoryTest {
 
@@ -79,6 +80,23 @@ class FileParserFactoryTest {
         TroubleEntity entity = factory.parseFile(file);
 
         assertNull(entity);
+    }
+
+    @Test
+    void readFileLinesShouldThrowWhenPayloadIsBinary() throws IOException {
+        FileParserFactory factory = createFactory(new TombstoneStubParserStrategy());
+        Path file = tempDir.resolve("fake-image.bin");
+
+        byte[] payload = new byte[] {
+            (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+            0x00, 0x10, 'J', 'F', 'I', 'F', 0x00, 0x01,
+            0x02, 0x03, 0x04, 0x05,
+            'p', 'i', 'd', ':', ' ', '1', '2', '3', '\n',
+            'C', 'm', 'd', 'l', 'i', 'n', 'e', ':', ' ', 'd', 'e', 'm', 'o', '\n'
+        };
+        Files.write(file, payload);
+
+        assertThrows(IOException.class, () -> factory.readFileLines(file));
     }
 
     @Test

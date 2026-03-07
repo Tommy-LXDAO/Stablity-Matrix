@@ -232,6 +232,7 @@ public class AIFileAnalysisService {
             // 设置响应结果
             if (fileParseResult != null) {
                 response.setTombstone(fileParseResult.getTombstone());
+                response.setProcessLogs(fileParseResult.getProcessLogs());
             }
             response.setAiAnalysis(aiAnalysis);
             response.setSuccess(success);
@@ -343,13 +344,16 @@ public class AIFileAnalysisService {
      */
     private FileParseResult processStoredFiles(String sessionId, List<String> filePaths, SessionContext sessionContext) {
         FileParseResult result = new FileParseResult();
+        List<String> processLogs = new ArrayList<>();
         AArch64Tombstone tombstone = null;
+        boolean fileReadSucceeded = false;
 
         for (String filePath : filePaths) {
             try {
                 Path path = Paths.get(filePath);
                 if (!Files.exists(path) || !Files.isRegularFile(path)) {
                     logger.warn("[sessionId={}] 文件不存在，跳过: {}", sessionId, path);
+                    processLogs.add("文件读取失败: %s，不存在或不是普通文件".formatted(path.getFileName()));
                     continue;
                 }
 
@@ -362,6 +366,7 @@ public class AIFileAnalysisService {
                     fileType = detectFileTypeByPath(path);
                 } catch (IOException e) {
                     logger.warn("[sessionId={}] 检测文件类型失败: file={}, error={}", sessionId, fileName, e.getMessage());
+                    processLogs.add("文件读取失败: %s，检测文件类型失败: %s".formatted(fileName, e.getMessage()));
                     continue;
                 }
                 logger.debug("[sessionId={}] 检测到文件类型: {}", sessionId, fileType);
@@ -369,12 +374,25 @@ public class AIFileAnalysisService {
                 switch (fileType) {
                     case TXT:
                         logger.info("[sessionId={}] 使用多平台解析器解析文件...", sessionId);
-                        TroubleEntity entity = fileParserFactory.parseFile(path);
+                        List<String> lines;
+                        try {
+                            lines = fileParserFactory.readFileLines(path);
+                            fileReadSucceeded = true;
+                        } catch (IOException e) {
+                            logger.warn("[sessionId={}] 读取文本文件失败: file={}, error={}",
+                                    sessionId, fileName, e.getMessage());
+                            processLogs.add("文件读取失败: %s，%s".formatted(fileName, e.getMessage()));
+                            continue;
+                        }
+
+                        TroubleEntity entity = fileParserFactory.parseLines(lines);
                         if (entity instanceof AArch64Tombstone parsedTombstone && isValidTombstone(parsedTombstone)) {
                             tombstone = parsedTombstone;
                             logger.info("[sessionId={}] 成功解析文件: {}", sessionId, fileName);
+                            processLogs.add("文件解析成功: %s".formatted(fileName));
                         } else {
                             logger.debug("[sessionId={}] 文件不是有效的崩溃日志格式: {}", sessionId, fileName);
+                            processLogs.add("文件解析失败: %s，未识别为有效崩溃日志".formatted(fileName));
                         }
                         break;
 
@@ -382,6 +400,8 @@ public class AIFileAnalysisService {
                         // 这种情况是文件名不是zip但内容是zip的情况
                         logger.info("[sessionId={}] 检测到ZIP文件内容，开始解压并分析...", sessionId);
                         FileParseResult zipResult = handleZipContent(sessionId, path);
+                        mergeProcessLogs(processLogs, zipResult.getProcessLogs());
+                        fileReadSucceeded = fileReadSucceeded || zipResult.isSuccess();
                         if (zipResult.getTombstone() != null && tombstone == null) {
                             tombstone = zipResult.getTombstone();
                         }
@@ -390,15 +410,18 @@ public class AIFileAnalysisService {
                     default:
                         logger.debug("[sessionId={}] 跳过非文本或不支持的文件类型: file={}, type={}",
                             sessionId, fileName, fileType);
+                        processLogs.add("跳过不支持的文件类型: %s (%s)".formatted(fileName, fileType));
                         break;
                 }
             } catch (Exception e) {
                 logger.error("[sessionId={}] 处理文件失败: path={}, error={}", sessionId, filePath, e.getMessage(), e);
+                processLogs.add("文件处理失败: %s，%s".formatted(filePath, e.getMessage()));
             }
         }
 
         result.setTombstone(tombstone);
-        result.setSuccess(true);
+        result.setProcessLogs(processLogs);
+        result.setSuccess(tombstone != null || fileReadSucceeded);
         return result;
     }
 
@@ -411,13 +434,19 @@ public class AIFileAnalysisService {
      */
     private FileParseResult handleZipContent(String sessionId, Path zipPath) {
         FileParseResult result = new FileParseResult();
+        List<String> processLogs = new ArrayList<>();
         AArch64Tombstone tombstone = null;
+        boolean zipReadSucceeded = false;
 
         try {
             // 查找可能的Tombstone文件
             List<ZipFileParser.ZipEntryInfo> potentialTombstones =
                 findPotentialTombstonesInZip(zipPath);
+            zipReadSucceeded = true;
             logger.info("[sessionId={}] 在ZIP中找到 {} 个可能的Tombstone文件", sessionId, potentialTombstones.size());
+            if (potentialTombstones.isEmpty()) {
+                processLogs.add("ZIP读取成功: %s，未找到候选崩溃文件".formatted(zipPath.getFileName()));
+            }
 
             for (ZipFileParser.ZipEntryInfo entry : potentialTombstones) {
                 logger.info("[sessionId={}] 尝试解析文件: {}", sessionId, entry.getName());
@@ -425,18 +454,25 @@ public class AIFileAnalysisService {
                 if (parsedTombstone != null && isValidTombstone(parsedTombstone)) {
                     tombstone = parsedTombstone;
                     logger.info("[sessionId={}] 成功解析Tombstone: {}", sessionId, entry.getName());
+                    processLogs.add("ZIP条目解析成功: %s".formatted(entry.getName()));
                     break;
                 } else {
                     logger.debug("[sessionId={}] 文件不是有效的Tombstone: {}", sessionId, entry.getName());
+                    processLogs.add("ZIP条目解析失败: %s，未识别为有效崩溃日志".formatted(entry.getName()));
                 }
             }
 
+        } catch (IOException e) {
+            processLogs.add("ZIP读取失败: %s，%s".formatted(zipPath.getFileName(), e.getMessage()));
+            logger.error("[sessionId={}] 读取ZIP文件失败: path={}, error={}", sessionId, zipPath, e.getMessage(), e);
         } catch (Exception e) {
+            processLogs.add("ZIP处理失败: %s，%s".formatted(zipPath.getFileName(), e.getMessage()));
             logger.error("[sessionId={}] 分析ZIP文件内容失败: path={}, error={}", sessionId, zipPath, e.getMessage(), e);
         }
 
         result.setTombstone(tombstone);
-        result.setSuccess(true);
+        result.setProcessLogs(processLogs);
+        result.setSuccess(tombstone != null || zipReadSucceeded);
         return result;
     }
 
@@ -445,6 +481,13 @@ public class AIFileAnalysisService {
      */
     private FileTypeDetector.FileType detectFileTypeByPath(Path path) throws IOException {
         return FileTypeDetector.detectFileType(path);
+    }
+
+    private void mergeProcessLogs(List<String> target, List<String> source) {
+        if (target == null || source == null || source.isEmpty()) {
+            return;
+        }
+        target.addAll(source);
     }
 
     /**
@@ -638,13 +681,8 @@ public class AIFileAnalysisService {
     /**
      * 查找ZIP中可能的Tombstone文件
      */
-    private List<ZipFileParser.ZipEntryInfo> findPotentialTombstonesInZip(Path zipPath) {
-        try {
-            return ZipFileParser.findPotentialTombstoneFiles(createMultipartFileFromPath(zipPath));
-        } catch (Exception e) {
-            logger.error("读取ZIP文件失败: {}", zipPath, e);
-            return new ArrayList<>();
-        }
+    private List<ZipFileParser.ZipEntryInfo> findPotentialTombstonesInZip(Path zipPath) throws IOException {
+        return ZipFileParser.findPotentialTombstoneFiles(createMultipartFileFromPath(zipPath));
     }
 
     /**
