@@ -279,8 +279,7 @@ public class AIFileAnalysisService {
 
         for (String filePath : storedFilePaths) {
             Path path = Paths.get(filePath);
-            String fileName = path.getFileName().toString();
-            ArchiveExtractionService.ArchiveType archiveType = detectArchiveType(fileName);
+            ArchiveExtractionService.ArchiveType archiveType = detectArchiveType(filePath);
             if (archiveType != ArchiveExtractionService.ArchiveType.UNKNOWN) {
                 archiveFiles.add(filePath);
             } else {
@@ -387,6 +386,11 @@ public class AIFileAnalysisService {
                             tombstone = zipResult.getTombstone();
                         }
                         break;
+
+                    default:
+                        logger.debug("[sessionId={}] 跳过非文本或不支持的文件类型: file={}, type={}",
+                            sessionId, fileName, fileType);
+                        break;
                 }
             } catch (Exception e) {
                 logger.error("[sessionId={}] 处理文件失败: path={}, error={}", sessionId, filePath, e.getMessage(), e);
@@ -440,25 +444,7 @@ public class AIFileAnalysisService {
      * 通过路径检测文件类型
      */
     private FileTypeDetector.FileType detectFileTypeByPath(Path path) throws IOException {
-        byte[] header = new byte[8];
-        try (var inputStream = Files.newInputStream(path)) {
-            int read = inputStream.read(header);
-            if (read >= 2 && isZipMagic(header)) {
-                return FileTypeDetector.FileType.ZIP;
-            }
-        }
-
-        return FileTypeDetector.FileType.TXT;
-    }
-
-    /**
-     * 检查是否为ZIP魔数
-     */
-    private boolean isZipMagic(byte[] header) {
-        if (header.length < 2) {
-            return false;
-        }
-        return (header[0] & 0xFF) == 'P' && (header[1] & 0xFF) == 'K';
+        return FileTypeDetector.detectFileType(path);
     }
 
     /**

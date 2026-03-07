@@ -23,6 +23,7 @@ import java.util.List;
 public class ArchiveExtractionService {
 
     private static final Logger logger = LoggerFactory.getLogger(ArchiveExtractionService.class);
+    private static final int TAR_MAGIC_OFFSET = 257;
 
     /**
      * 归档文件类型
@@ -80,16 +81,21 @@ public class ArchiveExtractionService {
      */
     private static ArchiveType detectArchiveTypeByMagicNumber(Path path) {
         try (InputStream is = Files.newInputStream(path)) {
-            byte[] header = new byte[10];
-            int read = is.read(header);
-            if (read >= 4) {
+            byte[] header = is.readNBytes(512);
+            int read = header.length;
+            if (read >= 2) {
                 // ZIP: PK
                 if (header[0] == 0x50 && header[1] == 0x4B) {
                     return ArchiveType.ZIP;
                 }
-                // TAR: 0x75 0x73 0x74 0x61 0x72
-                if (read >= 5 && header[0] == 0x75 && header[1] == 0x73 &&
-                    header[2] == 0x74 && header[3] == 0x61 && header[4] == 0x72) {
+            }
+            if (read > TAR_MAGIC_OFFSET + 4) {
+                // TAR: 偏移257处的 "ustar"
+                if (header[TAR_MAGIC_OFFSET] == 0x75
+                    && header[TAR_MAGIC_OFFSET + 1] == 0x73
+                    && header[TAR_MAGIC_OFFSET + 2] == 0x74
+                    && header[TAR_MAGIC_OFFSET + 3] == 0x61
+                    && header[TAR_MAGIC_OFFSET + 4] == 0x72) {
                     return ArchiveType.TAR;
                 }
             }

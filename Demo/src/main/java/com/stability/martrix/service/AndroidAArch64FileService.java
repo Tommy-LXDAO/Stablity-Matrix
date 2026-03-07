@@ -66,6 +66,17 @@ public class AndroidAArch64FileService implements FileService {
         return tombstone;
     }
 
+    public TroubleEntity parseResourceFile(String resourcePath) {
+        AArch64Tombstone tombstone = new AArch64Tombstone();
+        List<String> lines = readLinesFromResource(resourcePath);
+        if (lines == null || lines.isEmpty()) {
+            return tombstone;
+        }
+
+        parseLines(lines, tombstone);
+        return tombstone;
+    }
+
     /**
      * 检查文件是否存在
      */
