@@ -4002,4 +4002,12 @@ Content-Disposition: form-data; name="question"
 --WebAppBoundary--
 
 ###
+POST http://127.0.0.1:8888/ai/react
+Content-Type: application/json
 
+{
+  "sessionId": "286698786670120960",
+  "question": "根据当前session里的崩溃上下文，根因是什么？如果要继续定位，下一步该看哪里？"
+}
+
+###

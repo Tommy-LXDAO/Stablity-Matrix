@@ -2,10 +2,14 @@ package com.stability.martrix.controller;
 
 import com.stability.martrix.constants.ErrorCode;
 import com.stability.martrix.dto.AIAnalysisResponse;
+import com.stability.martrix.dto.AIReactRequest;
+import com.stability.martrix.dto.AIReactResponse;
 import com.stability.martrix.service.AIFileAnalysisService;
+import com.stability.martrix.service.AIReactService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,9 +27,12 @@ public class AnalysisController {
     private static final Logger logger = LoggerFactory.getLogger(AnalysisController.class);
 
     private final AIFileAnalysisService aiFileAnalysisService;
+    private final AIReactService aiReactService;
 
-    public AnalysisController(AIFileAnalysisService aiFileAnalysisService) {
+    public AnalysisController(AIFileAnalysisService aiFileAnalysisService,
+                              AIReactService aiReactService) {
         this.aiFileAnalysisService = aiFileAnalysisService;
+        this.aiReactService = aiReactService;
     }
 
     /**
@@ -53,5 +60,22 @@ public class AnalysisController {
         }
 
         return aiFileAnalysisService.analyzeRequest(question, sessionId, files);
+    }
+
+    /**
+     * ReAct多轮对话接口
+     * 基于session中的崩溃上下文执行工具调用和最终回答
+     *
+     * @param request 对话请求
+     * @return ReAct对话结果
+     */
+    @PostMapping("/react")
+    public AIReactResponse react(@RequestBody AIReactRequest request) {
+        if (request == null) {
+            return AIReactResponse.fail(ErrorCode.AI_ANALYSIS_FAILED, "请求体不能为空");
+        }
+        logger.info("收到ReAct对话请求，sessionId={}, question={}",
+            request.getSessionId(), request.getQuestion());
+        return aiReactService.chat(request.getSessionId(), request.getQuestion());
     }
 }

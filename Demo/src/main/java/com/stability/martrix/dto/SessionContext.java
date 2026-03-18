@@ -36,6 +36,11 @@ public class SessionContext {
     private java.util.List<String> questions = new ArrayList<>();
 
     /**
+     * 多轮对话消息历史
+     */
+    private java.util.List<ChatMessage> chatMessages = new ArrayList<>();
+
+    /**
      * 解析后的用户提问列表
      */
     private java.util.List<String> parsedQuestions = new ArrayList<>();
@@ -94,6 +99,29 @@ public class SessionContext {
     }
 
     /**
+     * 会话消息
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChatMessage {
+        /**
+        * 角色：user / assistant / tool
+        */
+        private String role;
+
+        /**
+         * 消息内容
+         */
+        private String content;
+
+        /**
+         * 时间戳
+         */
+        private Long timestamp;
+    }
+
+    /**
      * 构造函数
      */
     public SessionContext(String sessionId) {
@@ -120,6 +148,16 @@ public class SessionContext {
             this.parsedQuestions = new ArrayList<>();
         }
         this.parsedQuestions.add(parsedQuestion);
+    }
+
+    /**
+     * 添加聊天消息
+     */
+    public void addChatMessage(String role, String content) {
+        if (this.chatMessages == null) {
+            this.chatMessages = new ArrayList<>();
+        }
+        this.chatMessages.add(new ChatMessage(role, content, System.currentTimeMillis()));
     }
 
     /**
