@@ -105,6 +105,7 @@ public class AIFileAnalysisService {
             // ========================================
             if (question != null && !question.trim().isEmpty()) {
                 sessionContext.addQuestion(question);
+                sessionContext.addChatMessage("user", question);
             }
 
             // ========================================
@@ -236,6 +237,10 @@ public class AIFileAnalysisService {
             }
             response.setAiAnalysis(aiAnalysis);
             response.setSuccess(success);
+
+            if (aiAnalysis != null && !aiAnalysis.trim().isEmpty()) {
+                sessionContext.addChatMessage("assistant", aiAnalysis);
+            }
 
             // ========================================
             // 第七步：更新会话上下文到Redis
