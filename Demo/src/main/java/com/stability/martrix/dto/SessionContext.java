@@ -46,14 +46,44 @@ public class SessionContext {
     private java.util.List<String> parsedQuestions = new ArrayList<>();
 
     /**
+     * 从用户问题中提取的崩溃信息
+     */
+    private CrashInfo crashInfo;
+
+    /**
      * Tombstone信息（如果有）
      */
     private AArch64Tombstone tombstone;
 
     /**
+     * 模式匹配结果
+     */
+    private PatternMatchResult patternMatchResult;
+
+    /**
+     * 栈顶代码定位结果
+     */
+    private CodeLocation topCodeLocation;
+
+    /**
+     * 根因指向结果
+     */
+    private RootCauseInsight rootCauseInsight;
+
+    /**
+     * 编程指导结果
+     */
+    private ProgrammingAdvice programmingAdvice;
+
+    /**
      * 会话文件列表（存储在文件系统中的文件路径）
      */
     private java.util.List<SessionFile> files = new ArrayList<>();
+
+    /**
+     * 文件处理日志
+     */
+    private java.util.List<String> processLogs = new ArrayList<>();
 
     /**
      * 是否解析成功
@@ -169,6 +199,67 @@ public class SessionContext {
         }
         SessionFile sessionFile = new SessionFile(fileName, filePath, fileSize, fileType, System.currentTimeMillis());
         this.files.add(sessionFile);
+    }
+
+    /**
+     * 文件不存在时才追加到会话
+     */
+    public void addFileIfAbsent(String fileName, String filePath, long fileSize, String fileType) {
+        if (hasFilePath(filePath)) {
+            return;
+        }
+        addFile(fileName, filePath, fileSize, fileType);
+    }
+
+    /**
+     * 检查会话中是否已记录该文件路径
+     */
+    public boolean hasFilePath(String filePath) {
+        if (filePath == null || filePath.isBlank() || this.files == null || this.files.isEmpty()) {
+            return false;
+        }
+        return this.files.stream().anyMatch(file -> filePath.equals(file.getFilePath()));
+    }
+
+    /**
+     * 添加处理日志
+     */
+    public void addProcessLog(String processLog) {
+        if (processLog == null || processLog.isBlank()) {
+            return;
+        }
+        if (this.processLogs == null) {
+            this.processLogs = new ArrayList<>();
+        }
+        this.processLogs.add(processLog);
+    }
+
+    /**
+     * 追加处理日志列表
+     */
+    public void addProcessLogs(java.util.List<String> processLogs) {
+        if (processLogs == null || processLogs.isEmpty()) {
+            return;
+        }
+        if (this.processLogs == null) {
+            this.processLogs = new ArrayList<>();
+        }
+        this.processLogs.addAll(processLogs);
+    }
+
+    /**
+     * 新文件到达时，清理依赖旧文件计算出的中间结果
+     */
+    public void resetAnalysisArtifacts() {
+        this.crashInfo = null;
+        this.tombstone = null;
+        this.patternMatchResult = null;
+        this.topCodeLocation = null;
+        this.rootCauseInsight = null;
+        this.programmingAdvice = null;
+        this.processLogs = new ArrayList<>();
+        this.success = false;
+        this.errorMessage = null;
     }
 
     /**

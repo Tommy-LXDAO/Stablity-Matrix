@@ -506,7 +506,7 @@ public class AIFileAnalysisService {
      * 解析用户提问
      * 使用 AI 提取纯净的问题内容
      */
-    private String parseQuestion(String question) {
+    String parseQuestion(String question) {
         if (question == null || question.trim().isEmpty()) {
             return null;
         }
@@ -547,7 +547,7 @@ public class AIFileAnalysisService {
      * 从用户提问中提取崩溃信息
      * 使用 AI 智能提取
      */
-    private CrashInfo extractCrashInfo(String question) {
+    CrashInfo extractCrashInfo(String question) {
         CrashInfo crashInfo = new CrashInfo();
         crashInfo.setHasCrashInfo(false);
 
@@ -804,9 +804,9 @@ public class AIFileAnalysisService {
      * @param patternMatchResult 模式匹配结果
      * @return AI分析结果
      */
-    private String analyzeCrashWithAI(String sessionId, String originalQuestion, String parsedQuestion,
-                                       CrashInfo crashInfo, AArch64Tombstone tombstone,
-                                       PatternMatchResult patternMatchResult, CodeLocation topCodeLocation) {
+    String analyzeCrashWithAI(String sessionId, String originalQuestion, String parsedQuestion,
+                              CrashInfo crashInfo, AArch64Tombstone tombstone,
+                              PatternMatchResult patternMatchResult, CodeLocation topCodeLocation) {
         try {
             AnalysisData analysisData = new AnalysisData();
 

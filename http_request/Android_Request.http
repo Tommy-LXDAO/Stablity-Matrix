@@ -4011,3 +4011,18 @@ Content-Type: application/json
 }
 
 ###
+
+POST http://127.0.0.1:8888/ai/analyze/react
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="sessionId"
+
+286698786670120960
+--WebAppBoundary
+Content-Disposition: form-data; name="question"
+
+请结合当前session中的文件和上下文分析这次崩溃，如果需要请自动做文件解析和源码定位
+--WebAppBoundary--
+
+###

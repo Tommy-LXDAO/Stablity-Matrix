@@ -4,6 +4,7 @@ import com.stability.martrix.constants.ErrorCode;
 import com.stability.martrix.dto.AIAnalysisResponse;
 import com.stability.martrix.dto.AIReactRequest;
 import com.stability.martrix.dto.AIReactResponse;
+import com.stability.martrix.service.AIAnalyzeReactService;
 import com.stability.martrix.service.AIFileAnalysisService;
 import com.stability.martrix.service.AIReactService;
 import org.slf4j.Logger;
@@ -27,11 +28,14 @@ public class AnalysisController {
     private static final Logger logger = LoggerFactory.getLogger(AnalysisController.class);
 
     private final AIFileAnalysisService aiFileAnalysisService;
+    private final AIAnalyzeReactService aiAnalyzeReactService;
     private final AIReactService aiReactService;
 
     public AnalysisController(AIFileAnalysisService aiFileAnalysisService,
+                              AIAnalyzeReactService aiAnalyzeReactService,
                               AIReactService aiReactService) {
         this.aiFileAnalysisService = aiFileAnalysisService;
+        this.aiAnalyzeReactService = aiAnalyzeReactService;
         this.aiReactService = aiReactService;
     }
 
@@ -60,6 +64,24 @@ public class AnalysisController {
         }
 
         return aiFileAnalysisService.analyzeRequest(question, sessionId, files);
+    }
+
+    /**
+     * ReAct版AI分析接口
+     * 与 /ai/analyze 使用相同的请求规格，但由模型决定是否执行文件解析和源码定位工具。
+     */
+    @PostMapping("/analyze/react")
+    public AIAnalysisResponse analyzeWithReact(@RequestParam(value = "question", required = false) String question,
+                                               @RequestParam(value = "sessionId", required = true) String sessionId,
+                                               @RequestParam(value = "files", required = false) MultipartFile[] files) {
+        logger.info("收到ReAct版AI分析请求，sessionId={}, question={}, files={}",
+            sessionId, question, files != null ? files.length : 0);
+
+        if (ObjectUtils.isEmpty(sessionId)) {
+            return AIAnalysisResponse.fail(ErrorCode.SESSION_ID_EMPTY, "sessionId不能为空");
+        }
+
+        return aiAnalyzeReactService.analyzeRequest(question, sessionId, files);
     }
 
     /**

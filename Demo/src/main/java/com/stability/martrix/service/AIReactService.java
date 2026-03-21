@@ -68,6 +68,7 @@ public class AIReactService {
         List<String> scratchpad = new ArrayList<>();
 
         try {
+            // ReAct主循环：每一轮只允许模型“选一个动作”或“直接给最终答案”。
             for (int stepIndex = 1; stepIndex <= MAX_STEPS; stepIndex++) {
                 ReactDecision decision = decideNextAction(sessionContext, question, scratchpad);
                 if (decision == null) {
@@ -92,6 +93,7 @@ public class AIReactService {
                 String observation = executeTool(decision.action, decision.actionInput, sessionContext);
                 step.setObservation(observation);
                 steps.add(step);
+                // 将本轮的 thought / action / observation 回灌到上下文，驱动下一轮继续推理。
                 scratchpad.add("Thought: " + safeText(decision.thought, ""));
                 scratchpad.add("Action: " + decision.action);
                 scratchpad.add("Action Input: " + safeText(decision.actionInput, ""));
@@ -115,6 +117,7 @@ public class AIReactService {
     private ReactDecision decideNextAction(SessionContext sessionContext, String question, List<String> scratchpad) {
         String raw = null;
         try {
+            // 把 session 摘要、近期对话和已有观察压进同一个提示词，让模型做单步决策。
             String prompt = """
                 你是一个采用ReAct模式的崩溃分析助手。
                 你必须在每一轮只做一件事：要么选择一个工具，要么直接给出最终答案。
@@ -160,6 +163,7 @@ public class AIReactService {
                 .call()
                 .content();
 
+            // 兼容模型夹带思维标签、Markdown代码块或自然语言前后缀的情况，尽量提纯出JSON。
             String cleaned = cleanupModelResponse(raw);
             String jsonCandidate = extractJsonObject(cleaned);
             String jsonText = (jsonCandidate != null && !jsonCandidate.isBlank()) ? jsonCandidate : cleaned;
@@ -200,6 +204,7 @@ public class AIReactService {
     }
 
     private String executeTool(String action, String actionInput, SessionContext sessionContext) {
+        // 这里把已有 session 能力包装成 ReAct 可消费的“观察结果”，不引入额外副作用。
         return switch (action) {
             case "get_session_summary" -> buildSessionSummary(sessionContext);
             case "get_crash_summary" -> buildCrashSummary(sessionContext.getTombstone());
@@ -314,6 +319,7 @@ public class AIReactService {
             return "暂无历史消息";
         }
 
+        // 只保留最近几轮消息，避免历史内容过长稀释当前问题和工具观察。
         int start = Math.max(0, sessionContext.getChatMessages().size() - MAX_HISTORY_MESSAGES);
         StringBuilder sb = new StringBuilder();
         for (int i = start; i < sessionContext.getChatMessages().size(); i++) {
@@ -329,6 +335,7 @@ public class AIReactService {
             return "当前会话里还没有崩溃文件上下文。我可以继续一般性回答，但如果你想要准确定位 musl/崩溃问题，需要先上传日志文件，再基于同一个 sessionId 追问。你的问题是：" + question;
         }
 
+        // 当模型没有稳定收束到 final_answer 时，至少把已确认的上下文事实返回给调用方。
         String observations = scratchpad.isEmpty() ? crashSummary : String.join("\n", scratchpad);
         return "基于当前 session 的崩溃上下文，我的判断是：\n" + observations;
     }
@@ -351,6 +358,7 @@ public class AIReactService {
         if (raw == null) {
             return "{}";
         }
+        // 不同模型可能输出 <think> 或 ```json 包裹内容，这里统一清洗成可解析文本。
         return raw.trim()
             .replaceAll("(?si)<think>.*?</think>", "")
             .replaceAll("(?si)<thinking>.*?</thinking>", "")

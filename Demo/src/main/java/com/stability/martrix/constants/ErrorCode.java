@@ -26,6 +26,16 @@ public class ErrorCode {
     public static final String SESSION_CREATE_FAILED = "1003";
 
     /**
+     * 会话正在被其他请求处理
+     */
+    public static final String SESSION_LOCKED = "1004";
+
+    /**
+     * 会话上下文更新失败
+     */
+    public static final String SESSION_UPDATE_FAILED = "1005";
+
+    /**
      * 文件解析失败
      */
     public static final String FILE_PARSE_FAILED = "2001";

@@ -2,6 +2,7 @@ package com.stability.martrix.dto;
 
 import com.stability.martrix.entity.AArch64Tombstone;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,6 +30,26 @@ public class AIAnalysisResponse extends BaseResponse {
     private AArch64Tombstone tombstone;
 
     /**
+     * 模式匹配结果
+     */
+    private PatternMatchResult patternMatchResult;
+
+    /**
+     * 栈顶源码定位结果
+     */
+    private CodeLocation topCodeLocation;
+
+    /**
+     * 根因指向结果
+     */
+    private RootCauseInsight rootCauseInsight;
+
+    /**
+     * 编程指导结果
+     */
+    private ProgrammingAdvice programmingAdvice;
+
+    /**
      * 处理过程中的日志信息
      */
     private List<String> processLogs;
@@ -42,6 +63,16 @@ public class AIAnalysisResponse extends BaseResponse {
      * AI崩溃分析结果（解析后的对象）
      */
     private CrashAnalysisResult crashAnalysisResult;
+
+    /**
+     * ReAct最终思考
+     */
+    private String reactFinalThought;
+
+    /**
+     * ReAct执行轨迹
+     */
+    private List<AIReactResponse.ReactStep> reactSteps = new ArrayList<>();
 
     public String getSessionId() {
         return sessionId;
@@ -82,6 +113,38 @@ public class AIAnalysisResponse extends BaseResponse {
         this.tombstone = tombstone;
     }
 
+    public PatternMatchResult getPatternMatchResult() {
+        return patternMatchResult;
+    }
+
+    public void setPatternMatchResult(PatternMatchResult patternMatchResult) {
+        this.patternMatchResult = patternMatchResult;
+    }
+
+    public CodeLocation getTopCodeLocation() {
+        return topCodeLocation;
+    }
+
+    public void setTopCodeLocation(CodeLocation topCodeLocation) {
+        this.topCodeLocation = topCodeLocation;
+    }
+
+    public RootCauseInsight getRootCauseInsight() {
+        return rootCauseInsight;
+    }
+
+    public void setRootCauseInsight(RootCauseInsight rootCauseInsight) {
+        this.rootCauseInsight = rootCauseInsight;
+    }
+
+    public ProgrammingAdvice getProgrammingAdvice() {
+        return programmingAdvice;
+    }
+
+    public void setProgrammingAdvice(ProgrammingAdvice programmingAdvice) {
+        this.programmingAdvice = programmingAdvice;
+    }
+
     public List<String> getProcessLogs() {
         return processLogs;
     }
@@ -104,6 +167,22 @@ public class AIAnalysisResponse extends BaseResponse {
 
     public void setCrashAnalysisResult(CrashAnalysisResult crashAnalysisResult) {
         this.crashAnalysisResult = crashAnalysisResult;
+    }
+
+    public String getReactFinalThought() {
+        return reactFinalThought;
+    }
+
+    public void setReactFinalThought(String reactFinalThought) {
+        this.reactFinalThought = reactFinalThought;
+    }
+
+    public List<AIReactResponse.ReactStep> getReactSteps() {
+        return reactSteps;
+    }
+
+    public void setReactSteps(List<AIReactResponse.ReactStep> reactSteps) {
+        this.reactSteps = reactSteps;
     }
 
     /**
